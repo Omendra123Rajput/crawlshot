@@ -16,6 +16,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/supertest": "^7.2.0",
+    "supertest": "^7.2.2",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.1.0"
