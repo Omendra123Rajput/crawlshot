@@ -10,8 +10,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Pipeline
 
 - [x] **PIPE-01**: User can submit a URL and receive a job ID immediately
-- [ ] **PIPE-02**: System crawls all internal pages from the submitted URL automatically
-- [ ] **PIPE-03**: System discovers pages via sitemap.xml (primary) and link-following (fallback)
+- [x] **PIPE-02**: System crawls all internal pages from the submitted URL automatically
+- [x] **PIPE-03**: System discovers pages via sitemap.xml (primary) and link-following (fallback)
 - [x] **PIPE-04**: System respects robots.txt disallow rules during crawl
 - [x] **PIPE-05**: System deduplicates discovered URLs via normalization (trailing slash, query params, anchors)
 - [ ] **PIPE-06**: System captures full-page screenshot at desktop viewport (1920x1080) for each page
@@ -88,8 +88,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PIPE-01 | Phase 1 | Complete |
-| PIPE-02 | Phase 1 | Pending |
-| PIPE-03 | Phase 1 | Pending |
+| PIPE-02 | Phase 1 | Complete |
+| PIPE-03 | Phase 1 | Complete |
 | PIPE-04 | Phase 1 | Complete |
 | PIPE-05 | Phase 1 | Complete |
 | PIPE-06 | Phase 2 | Pending |

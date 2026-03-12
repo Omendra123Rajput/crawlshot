@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-pipeline-foundation plan 03 (01-03-PLAN.md)
-last_updated: "2026-03-12T17:13:44.972Z"
+stopped_at: Completed 01-pipeline-foundation plan 02 (01-02-PLAN.md)
+last_updated: "2026-03-12T17:13:55.686Z"
 last_activity: 2026-03-12 — Roadmap created; 27 requirements mapped across 5 phases
 progress:
   total_phases: 5
@@ -70,6 +70,8 @@ Recent decisions affecting current work:
 - [Phase 01-pipeline-foundation]: Mock config with PORT=0 so app.listen() uses OS-assigned port — prevents EADDRINUSE when test process imports index.ts
 - [Phase 01-pipeline-foundation]: Use real pino({level:'silent'}) in @screenshot-crawler/utils mock for pino-http compatibility — plain object breaks .bindings().values() call
 - [Phase 01-pipeline-foundation]: Rate limiter verified via ratelimit-limit response header rather than exhausting 20-request window in tests
+- [Phase 01-pipeline-foundation]: Use initPromise singleton (not boolean flag) in BrowserPool — concurrent callers await the same promise, eliminating duplicate Chromium launches
+- [Phase 01-pipeline-foundation]: HTTPS-only enforced in url-normalizer before URLs reach SSRF guard — defense in depth layering
 
 ### Pending Todos
 
@@ -85,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T17:13:32.209Z
-Stopped at: Completed 01-pipeline-foundation plan 03 (01-03-PLAN.md)
+Last session: 2026-03-12T17:13:55.683Z
+Stopped at: Completed 01-pipeline-foundation plan 02 (01-02-PLAN.md)
 Resume file: None
