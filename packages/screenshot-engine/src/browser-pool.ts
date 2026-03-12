@@ -13,28 +13,30 @@ class BrowserPool {
   private browsers: Browser[] = [];
   private currentIndex = 0;
   private maxBrowsers: number;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor(maxBrowsers: number = SCREENSHOT_CONCURRENCY) {
     this.maxBrowsers = maxBrowsers;
   }
 
   async initialize(): Promise<void> {
-    if (this.initialized) return;
+    if (!this.initPromise) {
+      this.initPromise = this.doInitialize();
+    }
+    return this.initPromise;
+  }
 
+  private async doInitialize(): Promise<void> {
     logger.info({ maxBrowsers: this.maxBrowsers }, 'Initializing browser pool');
-
     for (let i = 0; i < this.maxBrowsers; i++) {
       const browser = await chromium.launch({ args: BROWSER_LAUNCH_ARGS });
       this.browsers.push(browser);
     }
-
-    this.initialized = true;
     logger.info({ count: this.browsers.length }, 'Browser pool ready');
   }
 
   getBrowser(): Browser {
-    if (!this.initialized || this.browsers.length === 0) {
+    if (!this.initPromise || this.browsers.length === 0) {
       throw new Error('Browser pool not initialized');
     }
 
@@ -47,7 +49,7 @@ class BrowserPool {
     logger.info('Closing browser pool');
     await Promise.all(this.browsers.map((b) => b.close()));
     this.browsers = [];
-    this.initialized = false;
+    this.initPromise = null;
   }
 }
 

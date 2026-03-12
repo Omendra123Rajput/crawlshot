@@ -3,7 +3,7 @@ import { getRedisConnection, type ScreenshotJobData, getScreenshotQueue } from '
 import { ScreenshotEngine } from '@screenshot-crawler/screenshot-engine';
 import { packageJob } from '@screenshot-crawler/storage';
 import { logger, QUEUE_NAMES, SCREENSHOT_CONCURRENCY } from '@screenshot-crawler/utils';
-import { broadcastToJob, getJobStats, incrementScreenshotted, incrementFailed, setJobPagesFound, getActiveJobs } from './broadcast';
+import { broadcastToJob, getJobStats, incrementScreenshotted, incrementFailed, setJobPagesFound, getActiveJobs, removeJobStats } from './broadcast';
 
 const engine = new ScreenshotEngine();
 
@@ -100,5 +100,5 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
 }
 
 function removeJob(jobId: string): void {
-  // Cleanup is handled by broadcast module
+  removeJobStats(jobId);
 }

@@ -64,11 +64,10 @@ describe('normalizeUrl', () => {
   });
 
   describe('protocol handling', () => {
-    it('allows http: protocol (current behavior — Plan 02 will enforce HTTPS)', () => {
-      // This test documents current behavior: normalizeUrl currently allows http:
-      // This should NOT be null — the HTTPS-only enforcement is added in Plan 02
+    it('rejects http: protocol (HTTPS-only enforcement)', () => {
+      // HTTPS-only: normalizeUrl must return null for HTTP URLs
       const result = normalizeUrl('http://example.com/page', 'http://example.com');
-      expect(result).not.toBeNull();
+      expect(result).toBeNull();
     });
 
     it('returns null for javascript: protocol', () => {

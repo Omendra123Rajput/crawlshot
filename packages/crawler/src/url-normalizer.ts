@@ -8,8 +8,8 @@ export function normalizeUrl(rawUrl: string, baseUrl: string): string | null {
       return null;
     }
 
-    // Only allow http/https
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    // Only allow https
+    if (url.protocol !== 'https:') {
       return null;
     }
 
