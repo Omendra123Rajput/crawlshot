@@ -12,8 +12,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PIPE-01**: User can submit a URL and receive a job ID immediately
 - [ ] **PIPE-02**: System crawls all internal pages from the submitted URL automatically
 - [ ] **PIPE-03**: System discovers pages via sitemap.xml (primary) and link-following (fallback)
-- [ ] **PIPE-04**: System respects robots.txt disallow rules during crawl
-- [ ] **PIPE-05**: System deduplicates discovered URLs via normalization (trailing slash, query params, anchors)
+- [x] **PIPE-04**: System respects robots.txt disallow rules during crawl
+- [x] **PIPE-05**: System deduplicates discovered URLs via normalization (trailing slash, query params, anchors)
 - [ ] **PIPE-06**: System captures full-page screenshot at desktop viewport (1920x1080) for each page
 - [ ] **PIPE-07**: System captures full-page screenshot at mobile viewport (390x844) for each page
 - [ ] **PIPE-08**: System handles up to 500+ page sites without crashing or stalling
@@ -37,8 +37,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Security
 
-- [ ] **SECR-01**: SSRF guard blocks private IPs, link-local, and cloud metadata endpoints on all outbound requests
-- [ ] **SECR-02**: Path sanitization prevents directory traversal on all file writes
+- [x] **SECR-01**: SSRF guard blocks private IPs, link-local, and cloud metadata endpoints on all outbound requests
+- [x] **SECR-02**: Path sanitization prevents directory traversal on all file writes
 - [ ] **SECR-03**: All API request bodies validated with zod schemas
 - [ ] **SECR-04**: Rate limiting on job creation endpoint
 
@@ -90,8 +90,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | PIPE-01 | Phase 1 | Pending |
 | PIPE-02 | Phase 1 | Pending |
 | PIPE-03 | Phase 1 | Pending |
-| PIPE-04 | Phase 1 | Pending |
-| PIPE-05 | Phase 1 | Pending |
+| PIPE-04 | Phase 1 | Complete |
+| PIPE-05 | Phase 1 | Complete |
 | PIPE-06 | Phase 2 | Pending |
 | PIPE-07 | Phase 2 | Pending |
 | PIPE-08 | Phase 5 | Pending |
@@ -106,8 +106,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | OUTP-02 | Phase 2 | Pending |
 | OUTP-03 | Phase 2 | Pending |
 | OUTP-04 | Phase 2 | Pending |
-| SECR-01 | Phase 1 | Pending |
-| SECR-02 | Phase 1 | Pending |
+| SECR-01 | Phase 1 | Complete |
+| SECR-02 | Phase 1 | Complete |
 | SECR-03 | Phase 1 | Pending |
 | SECR-04 | Phase 1 | Pending |
 | FRNT-01 | Phase 4 | Pending |

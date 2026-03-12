@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: planning
+stopped_at: Completed 01-pipeline-foundation plan 01 (01-01-PLAN.md)
+last_updated: "2026-03-12T17:07:19.242Z"
+last_activity: 2026-03-12 — Roadmap created; 27 requirements mapped across 5 phases
+progress:
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
+---
+
 # Project State
 
 ## Project Reference
@@ -14,7 +30,7 @@ Plan: 0 of TBD in current phase
 Status: Ready to plan
 Last activity: 2026-03-12 — Roadmap created; 27 requirements mapped across 5 phases
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -34,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-pipeline-foundation P01 | 4 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -46,6 +63,8 @@ Recent decisions affecting current work:
 - [Init]: Use `waitUntil: 'load'` (not `networkidle`) — real-world sites with analytics/chat widgets never reach true idle
 - [Init]: No authentication — team-only tool, simplicity over access control
 - [Init]: ZIP download only — keeps server stateless, meets team needs
+- [Phase 01-pipeline-foundation]: Used vi.mock('dns/promises') with separate resolve4/resolve6/lookup mocks to match ssrf-guard.ts DNS fallback chain
+- [Phase 01-pipeline-foundation]: URL normalizer http: test documents current behavior — Plan 02 will add HTTPS enforcement, at which point test needs updating
 
 ### Pending Todos
 
@@ -61,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12
-Stopped at: Roadmap created, STATE.md initialized — ready to run plan-phase 1
+Last session: 2026-03-12T17:07:19.239Z
+Stopped at: Completed 01-pipeline-foundation plan 01 (01-01-PLAN.md)
 Resume file: None
