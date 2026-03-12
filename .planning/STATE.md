@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-pipeline-foundation plan 01 (01-01-PLAN.md)
-last_updated: "2026-03-12T17:07:19.242Z"
+stopped_at: Completed 01-pipeline-foundation plan 03 (01-03-PLAN.md)
+last_updated: "2026-03-12T17:13:44.972Z"
 last_activity: 2026-03-12 — Roadmap created; 27 requirements mapped across 5 phases
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 3
   percent: 33
 ---
 
@@ -51,6 +51,8 @@ Progress: [███░░░░░░░] 33%
 
 *Updated after each plan completion*
 | Phase 01-pipeline-foundation P01 | 4 | 2 tasks | 6 files |
+| Phase 01-pipeline-foundation P03 | 4min | 1 tasks | 3 files |
+| Phase 01-pipeline-foundation P02 | 35 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -65,6 +67,9 @@ Recent decisions affecting current work:
 - [Init]: ZIP download only — keeps server stateless, meets team needs
 - [Phase 01-pipeline-foundation]: Used vi.mock('dns/promises') with separate resolve4/resolve6/lookup mocks to match ssrf-guard.ts DNS fallback chain
 - [Phase 01-pipeline-foundation]: URL normalizer http: test documents current behavior — Plan 02 will add HTTPS enforcement, at which point test needs updating
+- [Phase 01-pipeline-foundation]: Mock config with PORT=0 so app.listen() uses OS-assigned port — prevents EADDRINUSE when test process imports index.ts
+- [Phase 01-pipeline-foundation]: Use real pino({level:'silent'}) in @screenshot-crawler/utils mock for pino-http compatibility — plain object breaks .bindings().values() call
+- [Phase 01-pipeline-foundation]: Rate limiter verified via ratelimit-limit response header rather than exhausting 20-request window in tests
 
 ### Pending Todos
 
@@ -80,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T17:07:19.239Z
-Stopped at: Completed 01-pipeline-foundation plan 01 (01-01-PLAN.md)
+Last session: 2026-03-12T17:13:32.209Z
+Stopped at: Completed 01-pipeline-foundation plan 03 (01-03-PLAN.md)
 Resume file: None

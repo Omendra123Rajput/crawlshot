@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Pipeline
 
-- [ ] **PIPE-01**: User can submit a URL and receive a job ID immediately
+- [x] **PIPE-01**: User can submit a URL and receive a job ID immediately
 - [ ] **PIPE-02**: System crawls all internal pages from the submitted URL automatically
 - [ ] **PIPE-03**: System discovers pages via sitemap.xml (primary) and link-following (fallback)
 - [x] **PIPE-04**: System respects robots.txt disallow rules during crawl
@@ -39,8 +39,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SECR-01**: SSRF guard blocks private IPs, link-local, and cloud metadata endpoints on all outbound requests
 - [x] **SECR-02**: Path sanitization prevents directory traversal on all file writes
-- [ ] **SECR-03**: All API request bodies validated with zod schemas
-- [ ] **SECR-04**: Rate limiting on job creation endpoint
+- [x] **SECR-03**: All API request bodies validated with zod schemas
+- [x] **SECR-04**: Rate limiting on job creation endpoint
 
 ### Frontend
 
@@ -87,7 +87,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIPE-01 | Phase 1 | Pending |
+| PIPE-01 | Phase 1 | Complete |
 | PIPE-02 | Phase 1 | Pending |
 | PIPE-03 | Phase 1 | Pending |
 | PIPE-04 | Phase 1 | Complete |
@@ -108,8 +108,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | OUTP-04 | Phase 2 | Pending |
 | SECR-01 | Phase 1 | Complete |
 | SECR-02 | Phase 1 | Complete |
-| SECR-03 | Phase 1 | Pending |
-| SECR-04 | Phase 1 | Pending |
+| SECR-03 | Phase 1 | Complete |
+| SECR-04 | Phase 1 | Complete |
 | FRNT-01 | Phase 4 | Pending |
 | FRNT-02 | Phase 4 | Pending |
 | FRNT-03 | Phase 4 | Pending |

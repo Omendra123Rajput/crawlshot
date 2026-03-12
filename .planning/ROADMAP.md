@@ -12,7 +12,7 @@ CrawlShot is a rebuild/fix project: the architecture is sound but the implementa
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Pipeline Foundation** - API routes work, jobs are accepted, all internal pages are discovered and queued
+- [x] **Phase 1: Pipeline Foundation** - API routes work, jobs are accepted, all internal pages are discovered and queued (completed 2026-03-12)
 - [ ] **Phase 2: Capture and Delivery** - Screenshots are captured at both viewports, packaged into a ZIP, and downloadable with real-time progress streaming
 - [ ] **Phase 3: Screenshot Quality** - Captures are pixel-perfect: no mid-animation frames, no blank lazy-load placeholders, no autoplaying video, retries on failure
 - [ ] **Phase 4: Frontend** - User-facing UI is polished, functional, and shows clear progress and error states
@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The crawl worker discovers all internal pages from the submitted URL, respects robots.txt, parses sitemap.xml, and deduplicates URLs before queuing screenshot jobs
   3. Private IP addresses, link-local addresses, and cloud metadata endpoints are blocked at the SSRF guard and never reached by Playwright or fetch
   4. All job creation payloads with missing or invalid fields are rejected with a descriptive error before any crawl begins
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 01-01-PLAN.md — Install vitest and create test suites for security guards and crawler utilities
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Pipeline Foundation | 1/3 | In Progress|  |
+| 1. Pipeline Foundation | 3/3 | Complete   | 2026-03-12 |
 | 2. Capture and Delivery | 0/TBD | Not started | - |
 | 3. Screenshot Quality | 0/TBD | Not started | - |
 | 4. Frontend | 0/TBD | Not started | - |
