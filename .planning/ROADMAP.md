@@ -29,7 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The crawl worker discovers all internal pages from the submitted URL, respects robots.txt, parses sitemap.xml, and deduplicates URLs before queuing screenshot jobs
   3. Private IP addresses, link-local addresses, and cloud metadata endpoints are blocked at the SSRF guard and never reached by Playwright or fetch
   4. All job creation payloads with missing or invalid fields are rejected with a descriptive error before any crawl begins
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Install vitest and create test suites for security guards and crawler utilities
+- [ ] 01-02-PLAN.md — Fix HTTPS-only filter, removeJob stub, browser pool race; add crawler and sitemap tests
+- [ ] 01-03-PLAN.md — Create API route integration tests for validation, rate limiting, and job creation
 
 ### Phase 2: Capture and Delivery
 **Goal**: Users can watch a job run in real time and download a structured ZIP of full-page screenshots at both viewports when it completes
@@ -81,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Pipeline Foundation | 0/TBD | Not started | - |
+| 1. Pipeline Foundation | 0/3 | Not started | - |
 | 2. Capture and Delivery | 0/TBD | Not started | - |
 | 3. Screenshot Quality | 0/TBD | Not started | - |
 | 4. Frontend | 0/TBD | Not started | - |
