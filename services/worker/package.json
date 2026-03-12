@@ -1,0 +1,26 @@
+{
+  "name": "@screenshot-crawler/worker",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.4.0",
+    "@screenshot-crawler/utils": "*",
+    "@screenshot-crawler/queue": "*",
+    "@screenshot-crawler/crawler": "*",
+    "@screenshot-crawler/screenshot-engine": "*",
+    "@screenshot-crawler/storage": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}
