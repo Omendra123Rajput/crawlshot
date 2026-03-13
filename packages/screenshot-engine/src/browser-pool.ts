@@ -1,5 +1,5 @@
 import { chromium, type Browser } from 'playwright';
-import { logger, SCREENSHOT_CONCURRENCY } from '@screenshot-crawler/utils';
+import { logger } from '@screenshot-crawler/utils';
 
 const BROWSER_LAUNCH_ARGS = [
   '--no-sandbox',
@@ -7,6 +7,8 @@ const BROWSER_LAUNCH_ARGS = [
   '--disable-dev-shm-usage',
   '--disable-gpu',
   '--disable-features=VizDisplayCompositor',
+  '--single-process',
+  '--no-zygote',
 ];
 
 class BrowserPool {
@@ -15,13 +17,18 @@ class BrowserPool {
   private maxBrowsers: number;
   private initPromise: Promise<void> | null = null;
 
-  constructor(maxBrowsers: number = Math.min(3, SCREENSHOT_CONCURRENCY)) {
+  constructor(maxBrowsers: number = 1) {
     this.maxBrowsers = maxBrowsers;
   }
 
   async initialize(): Promise<void> {
+    if (this.browsers.length > 0) return;
     if (!this.initPromise) {
-      this.initPromise = this.doInitialize();
+      this.initPromise = this.doInitialize().catch((err) => {
+        // Reset so next call can retry
+        this.initPromise = null;
+        throw err;
+      });
     }
     return this.initPromise;
   }
@@ -29,14 +36,24 @@ class BrowserPool {
   private async doInitialize(): Promise<void> {
     logger.info({ maxBrowsers: this.maxBrowsers }, 'Initializing browser pool');
     for (let i = 0; i < this.maxBrowsers; i++) {
-      const browser = await chromium.launch({ args: BROWSER_LAUNCH_ARGS });
-      this.browsers.push(browser);
+      try {
+        const browser = await chromium.launch({
+          args: BROWSER_LAUNCH_ARGS,
+          headless: true,
+        });
+        this.browsers.push(browser);
+        logger.info({ index: i }, 'Browser instance launched');
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error({ index: i, error: error.message, stack: error.stack }, 'Failed to launch browser');
+        throw error;
+      }
     }
     logger.info({ count: this.browsers.length }, 'Browser pool ready');
   }
 
   getBrowser(): Browser {
-    if (!this.initPromise || this.browsers.length === 0) {
+    if (this.browsers.length === 0) {
       throw new Error('Browser pool not initialized');
     }
 

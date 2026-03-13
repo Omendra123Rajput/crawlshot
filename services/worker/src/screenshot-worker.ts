@@ -12,9 +12,9 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
     QUEUE_NAMES.SCREENSHOT,
     async (job: Job<ScreenshotJobData>) => {
       const { jobId, url, viewport, outputDir } = job.data;
-      const log = logger.child({ jobId, url, viewport });
+      const log = logger.child({ jobId, url, viewport, attempt: job.attemptsMade });
 
-      log.debug('Screenshot job started');
+      log.info('Screenshot job started');
 
       try {
         await engine.initialize();
@@ -29,34 +29,37 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
           pagesScreenshotted: stats.pagesScreenshotted,
         });
 
-        log.debug({ outputPath }, 'Screenshot captured');
+        log.info({ outputPath }, 'Screenshot captured');
         return { outputPath };
       } catch (error) {
-        incrementFailed(jobId);
         const err = error instanceof Error ? error : new Error(String(error));
-        log.error({ error: err.message }, 'Screenshot capture failed');
+        log.error({ error: err.message, stack: err.stack }, 'Screenshot capture failed');
         throw err;
       }
     },
     {
       connection: getRedisConnection() as unknown as ConnectionOptions,
-      concurrency: SCREENSHOT_CONCURRENCY,
+      concurrency: Math.min(2, SCREENSHOT_CONCURRENCY),
     }
   );
 
+  // Only count failures on FINAL attempt (after all retries exhausted)
   worker.on('failed', (job, err) => {
     if (job) {
+      const isFinal = job.attemptsMade >= (job.opts.attempts || 1);
       logger.warn(
-        { jobId: job.data.jobId, url: job.data.url, error: err.message },
+        { jobId: job.data.jobId, url: job.data.url, error: err.message, attempt: job.attemptsMade, isFinal },
         'Screenshot job failed'
       );
+      if (isFinal) {
+        incrementFailed(job.data.jobId);
+      }
     }
   });
 
   // Check if all screenshots for a job are done
   setInterval(async () => {
     try {
-      const queue = getScreenshotQueue();
       const activeJobs = getActiveJobs();
 
       for (const jobId of activeJobs) {
