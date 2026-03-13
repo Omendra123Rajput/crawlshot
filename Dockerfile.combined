@@ -22,8 +22,8 @@ COPY packages/crawler/package.json packages/crawler/
 COPY packages/screenshot-engine/package.json packages/screenshot-engine/
 COPY packages/storage/package.json packages/storage/
 
-# Install all dependencies
-RUN npm install --omit=dev || npm install
+# Install all dependencies (including devDependencies for tsx)
+RUN npm install
 
 # Install Playwright Chromium
 RUN npx playwright install chromium
