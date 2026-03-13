@@ -6,9 +6,6 @@ const BROWSER_LAUNCH_ARGS = [
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
   '--disable-gpu',
-  '--disable-features=VizDisplayCompositor',
-  '--single-process',
-  '--no-zygote',
 ];
 
 class BrowserPool {
