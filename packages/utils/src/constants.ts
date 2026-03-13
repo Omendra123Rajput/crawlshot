@@ -6,11 +6,11 @@ export const CRAWL_CONCURRENCY = 5;
 export const SCREENSHOT_CONCURRENCY = 10;
 export const REQUESTS_PER_SECOND = 2;
 
-export const PAGE_LOAD_TIMEOUT_MS = 30_000;
-export const CAPTURE_HARD_TIMEOUT_MS = 35_000;
-export const ANIMATION_SETTLE_MS = 2_000;
-export const SCROLL_STEP_PX = 300;
-export const SCROLL_INTERVAL_MS = 100;
+export const PAGE_LOAD_TIMEOUT_MS = 45_000;
+export const CAPTURE_HARD_TIMEOUT_MS = 90_000;
+export const ANIMATION_SETTLE_MS = 3_000;
+export const SCROLL_STEP_PX = 400;
+export const SCROLL_INTERVAL_MS = 150;
 
 export const VIEWPORTS = {
   desktop: { width: 1920, height: 1080 },
@@ -18,7 +18,7 @@ export const VIEWPORTS = {
 } as const;
 
 export const USER_AGENT = 'ScreenshotCrawler/1.0 (+https://screenshot-crawler.dev/bot)';
-export const BROWSER_USER_AGENT = 'Mozilla/5.0 (compatible; ScreenshotCrawler/1.0)';
+export const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
 export const QUEUE_NAMES = {
   CRAWL: 'crawl',

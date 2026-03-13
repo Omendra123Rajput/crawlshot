@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { validateBody } from '../middleware/validate';
 import { jobCreationLimiter } from '../middleware/rate-limit';
 import { createJob, getJob, getAllJobs } from '../services/job-store';
+import { watchJob } from '../services/sse-broadcaster';
 import { addCrawlJob } from '@screenshot-crawler/queue';
 import { guardUrl } from '@screenshot-crawler/crawler';
 import { MAX_URL_LENGTH } from '@screenshot-crawler/utils';
@@ -50,6 +51,9 @@ router.post(
 
     const jobId = uuidv4();
     const job = createJob(jobId, url, viewports);
+
+    // Subscribe to worker events immediately so job store stays in sync
+    watchJob(jobId);
 
     // Queue the crawl job
     await addCrawlJob({ jobId, url, viewports });

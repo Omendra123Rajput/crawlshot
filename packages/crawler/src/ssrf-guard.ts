@@ -38,6 +38,21 @@ const BLOCKED_HOSTNAMES = new Set([
   '[::1]',
 ]);
 
+const DNS_TIMEOUT_MS = 5_000;
+
+/** Race a promise against a timeout. Returns null on timeout instead of throwing. */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
 export async function guardUrl(url: string): Promise<void> {
   const parsed = new URL(url);
   const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
@@ -52,27 +67,32 @@ export async function guardUrl(url: string): Promise<void> {
 
   let ips: string[] = [];
 
-  // Try resolve4/resolve6 first (direct DNS queries)
+  // Try resolve4/resolve6 with timeout (direct DNS queries)
   try {
-    const ipv4 = await dns.resolve4(hostname);
-    ips.push(...ipv4);
+    const ipv4 = await withTimeout(dns.resolve4(hostname), DNS_TIMEOUT_MS);
+    if (ipv4) ips.push(...ipv4);
   } catch {
     // No A records or DNS server unavailable
   }
 
   try {
-    const ipv6 = await dns.resolve6(hostname);
-    ips.push(...ipv6);
+    const ipv6 = await withTimeout(dns.resolve6(hostname), DNS_TIMEOUT_MS);
+    if (ipv6) ips.push(...ipv6);
   } catch {
     // No AAAA records or DNS server unavailable
   }
 
-  // Fallback to OS resolver (dns.lookup) if direct queries failed
+  // Fallback to OS resolver (dns.lookup) if direct queries returned nothing
   if (ips.length === 0) {
     try {
-      const results = await dns.lookup(hostname, { all: true });
-      for (const result of results) {
-        ips.push(result.address);
+      const results = await withTimeout(
+        dns.lookup(hostname, { all: true }),
+        DNS_TIMEOUT_MS
+      );
+      if (results) {
+        for (const result of results) {
+          ips.push(result.address);
+        }
       }
     } catch {
       // OS resolver also failed
@@ -80,7 +100,8 @@ export async function guardUrl(url: string): Promise<void> {
   }
 
   if (ips.length === 0) {
-    throw new Error(`DNS resolution failed for hostname: ${hostname}`);
+    logger.warn({ hostname }, 'DNS resolution returned no results');
+    throw new Error(`Cannot resolve hostname: ${hostname}. Verify the domain exists.`);
   }
 
   for (const ip of ips) {

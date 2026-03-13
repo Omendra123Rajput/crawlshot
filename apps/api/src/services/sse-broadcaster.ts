@@ -10,6 +10,8 @@ type SSEClient = {
 };
 
 const clients = new Map<string, Set<SSEClient>>();
+// Track channels we've subscribed to (for job store updates even without SSE clients)
+const subscribedChannels = new Set<string>();
 let subscriber: IORedis | null = null;
 
 export function initSSESubscriber(redisUrl: string): void {
@@ -31,7 +33,7 @@ export function initSSESubscriber(redisUrl: string): void {
       // Update job store
       if (jobExists(jobId)) {
         if (data.status) {
-          setJobStatus(jobId, data.status);
+          setJobStatus(jobId, data.status as JobStatus);
         }
         if (data.pagesFound !== undefined || data.pagesScreenshotted !== undefined) {
           updateJobStats(jobId, {
@@ -40,15 +42,24 @@ export function initSSESubscriber(redisUrl: string): void {
           });
         }
         if (data.event === 'complete' && data.downloadUrl) {
-          updateJob(jobId, { status: 'completed', downloadUrl: data.downloadUrl });
+          updateJob(jobId, { status: 'completed', downloadUrl: data.downloadUrl as string });
         }
         if (data.event === 'error' && data.message) {
-          updateJob(jobId, { status: 'failed', error: data.message });
+          updateJob(jobId, { status: 'failed', error: data.message as string });
         }
       }
 
       // Broadcast to SSE clients
       broadcastToClients(jobId, data);
+
+      // Auto-unsubscribe on terminal events (if no SSE clients remain)
+      if (data.event === 'complete' || data.event === 'error') {
+        const jobClients = clients.get(jobId);
+        if (!jobClients || jobClients.size === 0) {
+          subscriber?.unsubscribe(channel);
+          subscribedChannels.delete(channel);
+        }
+      }
     } catch (error) {
       logger.error({ channel, error: String(error) }, 'Failed to process SSE event');
     }
@@ -59,14 +70,28 @@ export function initSSESubscriber(redisUrl: string): void {
   });
 }
 
+/**
+ * Subscribe to a job's Redis Pub/Sub channel immediately (called at job creation).
+ * Ensures the API job store stays in sync with worker events even before any SSE client connects.
+ */
+export function watchJob(jobId: string): void {
+  const channel = `job:${jobId}:events`;
+  if (!subscribedChannels.has(channel)) {
+    subscribedChannels.add(channel);
+    subscriber?.subscribe(channel);
+    logger.debug({ jobId }, 'Watching job channel for store updates');
+  }
+}
+
 export function subscribeToJob(jobId: string, res: Response): () => void {
   const client: SSEClient = { res, jobId };
 
   if (!clients.has(jobId)) {
     clients.set(jobId, new Set());
-    // Subscribe to Redis channel for this job
-    subscriber?.subscribe(`job:${jobId}:events`);
   }
+
+  // Ensure we're subscribed to the Redis channel
+  watchJob(jobId);
 
   clients.get(jobId)!.add(client);
 
@@ -79,7 +104,7 @@ export function subscribeToJob(jobId: string, res: Response): () => void {
       jobClients.delete(client);
       if (jobClients.size === 0) {
         clients.delete(jobId);
-        subscriber?.unsubscribe(`job:${jobId}:events`);
+        // Don't unsubscribe from Redis here — watchJob keeps it alive for job store updates
       }
     }
     logger.debug({ jobId }, 'SSE client disconnected');

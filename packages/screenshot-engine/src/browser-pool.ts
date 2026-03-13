@@ -15,7 +15,7 @@ class BrowserPool {
   private maxBrowsers: number;
   private initPromise: Promise<void> | null = null;
 
-  constructor(maxBrowsers: number = SCREENSHOT_CONCURRENCY) {
+  constructor(maxBrowsers: number = Math.min(3, SCREENSHOT_CONCURRENCY)) {
     this.maxBrowsers = maxBrowsers;
   }
 

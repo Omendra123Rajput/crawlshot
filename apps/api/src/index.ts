@@ -54,4 +54,12 @@ const shutdown = async () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
+// Prevent process crashes from unhandled errors
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason: String(reason) }, 'Unhandled rejection — NOT crashing');
+});
+process.on('uncaughtException', (err) => {
+  logger.error({ error: err.message, stack: err.stack }, 'Uncaught exception — NOT crashing');
+});
+
 export default app;
