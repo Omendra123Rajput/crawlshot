@@ -40,9 +40,9 @@ COPY packages/storage/ packages/storage/
 # Create screenshots directory
 RUN mkdir -p /tmp/screenshots
 
-# Copy startup script
+# Copy startup script and fix Windows line endings
 COPY start.sh ./
-RUN chmod +x start.sh
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
 
 EXPOSE 3001
 
