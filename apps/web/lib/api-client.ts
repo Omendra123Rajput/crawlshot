@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// In production, use relative URLs so requests go through Next.js rewrites (avoids CORS).
+// In development, call the API directly.
+const API_URL = typeof window !== 'undefined'
+  ? ''  // Browser: use relative URLs → Next.js rewrites proxy to the API
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
 
 export interface CreateJobRequest {
   url: string;
