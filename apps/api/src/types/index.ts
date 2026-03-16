@@ -21,6 +21,7 @@ export interface SSEEvent {
   status?: JobStatus;
   pagesFound?: number;
   pagesScreenshotted?: number;
+  totalExpected?: number;
   downloadUrl?: string;
   message?: string;
 }

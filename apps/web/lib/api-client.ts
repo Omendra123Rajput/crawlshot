@@ -7,6 +7,7 @@ const API_URL = typeof window !== 'undefined'
 export interface CreateJobRequest {
   url: string;
   viewports: ('desktop' | 'mobile')[];
+  maxDepth: number;
 }
 
 export interface CreateJobResponse {
@@ -62,4 +63,21 @@ export function getSSEUrl(jobId: string): string {
 
 export function getDownloadUrl(jobId: string): string {
   return `${API_URL}/api/jobs/${jobId}/download`;
+}
+
+export interface ScreenshotInfo {
+  viewport: string;
+  filename: string;
+  url: string;
+}
+
+export async function getScreenshots(jobId: string): Promise<ScreenshotInfo[]> {
+  const res = await fetch(`${API_URL}/api/jobs/${jobId}/screenshots`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.screenshots || [];
+}
+
+export function getScreenshotUrl(jobId: string, viewport: string, filename: string): string {
+  return `${API_URL}/api/jobs/${jobId}/screenshots/${viewport}/${filename}`;
 }

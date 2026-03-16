@@ -10,6 +10,7 @@ export interface SSEEvent {
   status?: JobStatus;
   pagesFound?: number;
   pagesScreenshotted?: number;
+  totalExpected?: number;
   downloadUrl?: string;
   message?: string;
 }
@@ -21,6 +22,7 @@ export interface SSEState {
     pagesFound: number;
     pagesScreenshotted: number;
     pagesFailed: number;
+    totalExpected: number;
   };
   downloadUrl: string | null;
   error: string | null;
@@ -30,7 +32,7 @@ export interface SSEState {
 export function useSSE(jobId: string | null): SSEState {
   const [events, setEvents] = useState<SSEEvent[]>([]);
   const [status, setStatus] = useState<JobStatus>('queued');
-  const [stats, setStats] = useState({ pagesFound: 0, pagesScreenshotted: 0, pagesFailed: 0 });
+  const [stats, setStats] = useState({ pagesFound: 0, pagesScreenshotted: 0, pagesFailed: 0, totalExpected: 0 });
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -62,6 +64,10 @@ export function useSSE(jobId: string | null): SSEState {
 
         if (data.pagesScreenshotted !== undefined) {
           setStats((prev) => ({ ...prev, pagesScreenshotted: data.pagesScreenshotted! }));
+        }
+
+        if (data.totalExpected !== undefined) {
+          setStats((prev) => ({ ...prev, totalExpected: data.totalExpected! }));
         }
 
         if (data.event === 'complete' && data.downloadUrl) {

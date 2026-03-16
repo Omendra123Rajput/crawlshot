@@ -27,6 +27,7 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
           status: 'capturing',
           pagesFound: stats.pagesFound,
           pagesScreenshotted: stats.pagesScreenshotted,
+          totalExpected: stats.pagesFound * stats.viewports,
         });
 
         log.info({ outputPath }, 'Screenshot captured');
@@ -73,6 +74,7 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
             status: 'packaging',
             pagesFound: stats.pagesFound,
             pagesScreenshotted: stats.pagesScreenshotted,
+            totalExpected: totalExpected,
           });
 
           try {

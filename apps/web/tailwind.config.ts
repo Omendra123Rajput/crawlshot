@@ -23,6 +23,8 @@ const config: Config = {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'scan-line': 'scan-line 3s linear infinite',
         'fade-up': 'fade-up 0.6s ease-out forwards',
+        shimmer: 'shimmer 1.8s ease-in-out infinite',
+        'skeleton-pulse': 'skeleton-pulse 1.8s ease-in-out infinite',
       },
     },
   },

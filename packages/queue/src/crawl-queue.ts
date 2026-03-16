@@ -6,6 +6,7 @@ export interface CrawlJobData {
   jobId: string;
   url: string;
   viewports: string[];
+  maxDepth: number;
 }
 
 let crawlQueue: Queue | null = null;

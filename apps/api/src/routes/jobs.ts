@@ -21,6 +21,12 @@ const createJobSchema = z.object({
     .array(z.enum(['desktop', 'mobile']))
     .min(1, 'At least one viewport required')
     .default(['desktop', 'mobile']),
+  maxDepth: z
+    .number()
+    .int()
+    .min(-1)
+    .max(10)
+    .default(-1),
 });
 
 // Async route wrapper for Express 4 (catches async errors and forwards to error handler)
@@ -36,7 +42,7 @@ router.post(
   jobCreationLimiter,
   validateBody(createJobSchema),
   asyncHandler(async (req: Request, res: Response) => {
-    const { url, viewports } = req.body as z.infer<typeof createJobSchema>;
+    const { url, viewports, maxDepth } = req.body as z.infer<typeof createJobSchema>;
 
     try {
       // SSRF guard
@@ -56,7 +62,7 @@ router.post(
     watchJob(jobId);
 
     // Queue the crawl job
-    await addCrawlJob({ jobId, url, viewports });
+    await addCrawlJob({ jobId, url, viewports, maxDepth });
 
     res.status(201).json({
       jobId: job.jobId,

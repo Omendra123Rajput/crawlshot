@@ -9,8 +9,8 @@ export function startCrawlWorker(): Worker<CrawlJobData> {
   const worker = new Worker<CrawlJobData>(
     QUEUE_NAMES.CRAWL,
     async (job: Job<CrawlJobData>) => {
-      const { jobId, url, viewports } = job.data;
-      const log = logger.child({ jobId, url });
+      const { jobId, url, viewports, maxDepth } = job.data;
+      const log = logger.child({ jobId, url, maxDepth });
 
       log.info('Crawl job started');
       initJobStats(jobId, url, viewports.length);
@@ -27,7 +27,7 @@ export function startCrawlWorker(): Worker<CrawlJobData> {
           pagesFound,
           pagesScreenshotted: 0,
         });
-      });
+      }, { maxDepth: maxDepth ?? -1 });
 
       log.info({ totalPages: pages.length }, 'Crawl complete, queuing screenshots');
       setJobPagesFound(jobId, pages.length);
@@ -36,6 +36,7 @@ export function startCrawlWorker(): Worker<CrawlJobData> {
         status: 'capturing',
         pagesFound: pages.length,
         pagesScreenshotted: 0,
+        totalExpected: pages.length * viewports.length,
       });
 
       // Queue screenshot jobs for each page + viewport

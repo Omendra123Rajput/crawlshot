@@ -3,7 +3,21 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createJob } from '@/lib/api-client';
-import { Monitor, Smartphone, ArrowRight, Loader2 } from 'lucide-react';
+import { Monitor, Smartphone, ArrowRight, Loader2, Layers } from 'lucide-react';
+
+type CrawlDepthOption = {
+  value: number;
+  label: string;
+  description: string;
+};
+
+const CRAWL_DEPTH_OPTIONS: CrawlDepthOption[] = [
+  { value: 0, label: 'Homepage Only', description: 'Just the landing page' },
+  { value: 1, label: 'Main Pages', description: 'Pages linked from homepage' },
+  { value: 2, label: 'Standard', description: '2 levels deep' },
+  { value: 3, label: 'Deep', description: '3 levels deep' },
+  { value: -1, label: 'Full Site', description: 'Crawl everything (up to 10k)' },
+];
 
 export default function ScanForm() {
   const router = useRouter();
@@ -11,6 +25,7 @@ export default function ScanForm() {
   const [viewports, setViewports] = useState<Set<'desktop' | 'mobile'>>(
     new Set(['desktop', 'mobile'])
   );
+  const [maxDepth, setMaxDepth] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +61,7 @@ export default function ScanForm() {
       const result = await createJob({
         url,
         viewports: Array.from(viewports),
+        maxDepth,
       });
 
       router.push(`/dashboard?jobId=${result.jobId}`);
@@ -75,6 +91,36 @@ export default function ScanForm() {
         {error && (
           <p className="text-sm text-[var(--error)] px-1">{error}</p>
         )}
+      </div>
+
+      {/* Crawl Depth Selector */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+          <Layers size={14} />
+          <span>Crawl Depth</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {CRAWL_DEPTH_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setMaxDepth(option.value)}
+              disabled={loading}
+              className={`px-3 py-1.5 rounded-lg border transition-all duration-300 text-xs
+                ${
+                  maxDepth === option.value
+                    ? 'border-[var(--border-active)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
+                    : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)]'
+                } disabled:opacity-50`}
+              title={option.description}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-[var(--text-muted)] px-1">
+          {CRAWL_DEPTH_OPTIONS.find((o) => o.value === maxDepth)?.description}
+        </p>
       </div>
 
       <div className="flex gap-3">

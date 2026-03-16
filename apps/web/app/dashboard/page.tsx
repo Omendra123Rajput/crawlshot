@@ -8,6 +8,7 @@ import { getJob, type JobResponse } from '@/lib/api-client';
 import JobProgress from '@/components/job-progress';
 import ScreenshotGrid from '@/components/screenshot-grid';
 import DownloadButton from '@/components/download-button';
+import DashboardSkeleton from '@/components/dashboard-skeleton';
 import { ArrowLeft } from 'lucide-react';
 
 function DashboardContent() {
@@ -15,22 +16,32 @@ function DashboardContent() {
   const jobId = searchParams.get('jobId');
   const [job, setJob] = useState<JobResponse | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const sse = useSSE(jobId);
 
   // Fetch initial job state
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId) {
+      setLoading(false);
+      return;
+    }
 
     getJob(jobId)
-      .then(setJob)
-      .catch((err) => setFetchError(err.message));
+      .then((data) => {
+        setJob(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setFetchError(err.message);
+        setLoading(false);
+      });
   }, [jobId]);
 
   if (!jobId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="glass p-8 text-center space-y-4 max-w-md">
+        <div className="glass p-8 text-center space-y-4 max-w-md animate-fade-up">
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">No Job Selected</h2>
           <p className="text-sm text-[var(--text-secondary)]">
             Submit a URL on the home page to start a new scan.
@@ -47,10 +58,15 @@ function DashboardContent() {
     );
   }
 
+  // Show skeleton while loading initial job data
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
   if (fetchError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="glass p-8 text-center space-y-4 max-w-md">
+        <div className="glass p-8 text-center space-y-4 max-w-md animate-fade-up">
           <h2 className="text-xl font-semibold text-[var(--error)]">Error</h2>
           <p className="text-sm text-[var(--text-secondary)]">{fetchError}</p>
           <Link
@@ -103,13 +119,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-[var(--text-muted)]">Loading...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={<DashboardSkeleton />}>
       <DashboardContent />
     </Suspense>
   );
