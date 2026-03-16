@@ -35,11 +35,12 @@ export function initSSESubscriber(redisUrl: string): void {
         if (data.status) {
           setJobStatus(jobId, data.status as JobStatus);
         }
-        if (data.pagesFound !== undefined || data.pagesScreenshotted !== undefined) {
-          updateJobStats(jobId, {
-            pagesFound: data.pagesFound,
-            pagesScreenshotted: data.pagesScreenshotted,
-          });
+        // Only update stats that are actually present (avoid overwriting with undefined)
+        const statsUpdate: Record<string, number> = {};
+        if (data.pagesFound !== undefined) statsUpdate.pagesFound = data.pagesFound;
+        if (data.pagesScreenshotted !== undefined) statsUpdate.pagesScreenshotted = data.pagesScreenshotted;
+        if (Object.keys(statsUpdate).length > 0) {
+          updateJobStats(jobId, statsUpdate);
         }
         if (data.event === 'complete' && data.downloadUrl) {
           updateJob(jobId, { status: 'completed', downloadUrl: data.downloadUrl as string });

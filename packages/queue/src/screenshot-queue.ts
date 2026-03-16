@@ -16,10 +16,10 @@ export function getScreenshotQueue(): Queue {
     screenshotQueue = new Queue(QUEUE_NAMES.SCREENSHOT, {
       connection: getRedisConnection() as unknown as ConnectionOptions,
       defaultJobOptions: {
-        attempts: 3,
+        attempts: 2,
         backoff: {
           type: 'exponential',
-          delay: 3000,
+          delay: 2000,
         },
         removeOnComplete: 100,
         removeOnFail: 50,

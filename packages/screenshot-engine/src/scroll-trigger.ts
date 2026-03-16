@@ -17,30 +17,21 @@ async function scrollFullPage(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const viewportHeight = window.innerHeight;
     const step = Math.floor(viewportHeight * 0.8);
-    let previousHeight = 0;
-    let currentHeight = document.body.scrollHeight;
+    const currentHeight = document.body.scrollHeight;
 
-    // Scroll through the page — repeat if page grows
-    for (let pass = 0; pass < 2; pass++) {
-      for (let y = 0; y <= currentHeight; y += step) {
-        window.scrollTo(0, y);
-        await new Promise(r => setTimeout(r, 300));
-      }
-
-      // Scroll to very bottom
-      window.scrollTo(0, document.body.scrollHeight);
-      await new Promise(r => setTimeout(r, 500));
-
-      // Check if page grew
-      const newHeight = document.body.scrollHeight;
-      if (newHeight === currentHeight && pass > 0) break;
-      previousHeight = currentHeight;
-      currentHeight = newHeight;
+    // Single pass scroll through the page
+    for (let y = 0; y <= currentHeight; y += step) {
+      window.scrollTo(0, y);
+      await new Promise(r => setTimeout(r, 150));
     }
+
+    // Scroll to very bottom
+    window.scrollTo(0, document.body.scrollHeight);
+    await new Promise(r => setTimeout(r, 300));
 
     // Scroll back to top
     window.scrollTo(0, 0);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 200));
   });
 }
 
@@ -51,7 +42,7 @@ async function waitForAllImages(page: Page): Promise<void> {
   try {
     await page.evaluate(() => {
       return new Promise<void>((resolve) => {
-        const timeout = setTimeout(resolve, 10_000);
+        const timeout = setTimeout(resolve, 5_000);
 
         const images = Array.from(document.querySelectorAll('img'));
         const pending = images.filter((img) => !img.complete && img.src);

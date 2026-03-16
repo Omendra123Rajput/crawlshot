@@ -34,6 +34,8 @@ export function incrementScreenshotted(jobId: string): void {
   const stats = jobStatsMap.get(jobId);
   if (stats) {
     stats.pagesScreenshotted++;
+  } else {
+    logger.warn({ jobId }, 'incrementScreenshotted: jobId not in stats map');
   }
 }
 
@@ -67,7 +69,9 @@ export function broadcastToJob(jobId: string, data: Record<string, unknown>): vo
   try {
     const redis = getRedisConnection();
     const channel = `job:${jobId}:events`;
-    redis.publish(channel, JSON.stringify(data));
+    redis.publish(channel, JSON.stringify(data)).catch((err: Error) => {
+      logger.error({ jobId, error: err.message }, 'Publish failed');
+    });
   } catch (error) {
     logger.error({ jobId, error: String(error) }, 'Failed to broadcast event');
   }

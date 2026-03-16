@@ -5,12 +5,10 @@ import { triggerLazyLoading } from './scroll-trigger';
 import { sanitizeFilename, safePath } from './sanitize-path';
 import {
   logger,
-  retry,
   VIEWPORTS,
   BROWSER_USER_AGENT,
   PAGE_LOAD_TIMEOUT_MS,
   CAPTURE_HARD_TIMEOUT_MS,
-  ANIMATION_SETTLE_MS,
   type ViewportKey,
 } from '@screenshot-crawler/utils';
 
@@ -46,17 +44,16 @@ export async function capturePage(
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
   try {
-    await retry(async () => {
-      await captureWithTimeout(url, viewportConfig, outputPath);
-    }, 2, 3000);
+    // No internal retry — let BullMQ handle retries at the job level
+    await captureWithTimeout(url, viewportConfig, outputPath);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error(
       { url, viewport, error: err.message },
-      'Screenshot capture failed after retries, saving placeholder'
+      'Screenshot capture failed, saving placeholder'
     );
 
-    // Save placeholder PNG
+    // Save placeholder PNG so the pipeline can continue
     await fs.writeFile(outputPath, PLACEHOLDER_PNG);
   }
 
@@ -96,8 +93,8 @@ async function captureWithTimeout(
           timeout: PAGE_LOAD_TIMEOUT_MS,
         });
 
-        // 2. Wait for network to settle
-        await page.waitForLoadState('networkidle').catch(() => {});
+        // 2. Wait for network to settle (short timeout — don't block on slow resources)
+        await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
         // 3. Wait for fonts to finish loading
         await page.evaluate(() => document.fonts.ready).catch(() => {});
@@ -105,26 +102,19 @@ async function captureWithTimeout(
         // 4. Dismiss cookie banners / consent dialogs
         await dismissCookieBanners(page);
 
-        // 5. Initial settle — let page JS initialize
-        await page.waitForTimeout(1500);
+        // 5. Brief settle — let page JS initialize
+        await page.waitForTimeout(500);
 
         // 6. Scroll through entire page to trigger lazy loading + animations
         await triggerLazyLoading(page);
 
-        // 7. Wait for network to settle after lazy loads
-        await page.waitForLoadState('networkidle').catch(() => {});
+        // 7. Short wait for network after lazy loads (don't block long)
+        await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
 
-        // 8. Dismiss any cookie banners that appeared after scroll/lazy-load
-        await dismissCookieBanners(page);
+        // 8. Final settle for animations (reduced)
+        await page.waitForTimeout(1000);
 
-        // 9. Final settle for animations
-        await page.waitForTimeout(ANIMATION_SETTLE_MS);
-
-        // 10. CRITICAL: Force all elements to their visible/final state.
-        //    Many sites use IntersectionObserver to add/remove CSS classes
-        //    that control opacity/transform animations. When Playwright
-        //    takes a fullPage screenshot from the top, off-screen elements
-        //    revert to invisible. This CSS override forces everything visible.
+        // 9. Force all elements to their visible/final state
         await page.addStyleTag({
           content: `
             *, *::before, *::after {
@@ -135,7 +125,6 @@ async function captureWithTimeout(
               animation-play-state: paused !important;
               animation-fill-mode: forwards !important;
             }
-            /* Force common animation library classes to their final state */
             [class*="animate"], [class*="fade"], [class*="slide"],
             [class*="reveal"], [class*="show"], [class*="visible"],
             [class*="appear"], [class*="aos-"], [class*="wow"],
@@ -146,7 +135,6 @@ async function captureWithTimeout(
               visibility: visible !important;
               clip-path: none !important;
             }
-            /* Override common initial hidden states */
             .is-hidden, .not-visible, .before-animate {
               opacity: 1 !important;
               transform: none !important;
@@ -155,17 +143,15 @@ async function captureWithTimeout(
           `
         });
 
-        // 11. Also force opacity/transform on ALL elements that might be hidden
+        // 10. Force opacity/transform on elements that might be hidden
         await page.evaluate(() => {
           const all = document.querySelectorAll('*');
           for (const el of all) {
             const style = window.getComputedStyle(el);
             const opacity = parseFloat(style.opacity);
-            // If element has low opacity and isn't meant to be a subtle overlay
             if (opacity < 0.1 && el.getBoundingClientRect().height > 10) {
               (el as HTMLElement).style.setProperty('opacity', '1', 'important');
             }
-            // Fix elements with transform that pushes them off-screen
             if (style.transform !== 'none' && style.transform.includes('translate')) {
               const rect = el.getBoundingClientRect();
               if (rect.top > window.innerHeight * 3 || rect.left > window.innerWidth * 2) {
@@ -175,14 +161,14 @@ async function captureWithTimeout(
           }
         });
 
-        // 12. Brief wait for style recalculation
-        await page.waitForTimeout(500);
-
-        // 13. Scroll to top
-        await page.evaluate(() => window.scrollTo(0, 0));
+        // 11. Brief wait for style recalculation
         await page.waitForTimeout(300);
 
-        // 14. Capture full-page screenshot
+        // 12. Scroll to top
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(200);
+
+        // 13. Capture full-page screenshot
         await page.screenshot({
           fullPage: true,
           path: outputPath,
@@ -198,43 +184,33 @@ async function captureWithTimeout(
 
 /**
  * Attempt to dismiss cookie consent banners by:
- * 1. Clicking common accept/close buttons
+ * 1. Clicking common accept/close buttons (fast check)
  * 2. Hiding remaining banner elements via CSS
  */
 async function dismissCookieBanners(page: import('playwright').Page): Promise<void> {
   try {
     // Try clicking common cookie accept buttons (ordered by specificity)
     const acceptSelectors = [
-      // Common CMP (Consent Management Platform) buttons
-      '#onetrust-accept-btn-handler',           // OneTrust
-      '.onetrust-close-btn-handler',            // OneTrust close
-      '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll', // Cookiebot
-      '#CybotCookiebotDialogBodyButtonAccept',  // Cookiebot
-      '[data-cookiefirst-action="accept"]',      // CookieFirst
-      '#cookie-law-info-bar .cli_action_button', // Cookie Law Info
-      '.cc-btn.cc-dismiss',                      // Cookie Consent (Osano)
-      '.cc-btn.cc-allow',                        // Cookie Consent accept
-      '#gdpr-cookie-accept',                     // GDPR Cookie Compliance
-      '.js-cookie-consent-agree',                // Generic
-      // Generic text-based selectors
+      '#onetrust-accept-btn-handler',
+      '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll',
+      '#CybotCookiebotDialogBodyButtonAccept',
+      '[data-cookiefirst-action="accept"]',
+      '.cc-btn.cc-dismiss',
+      '.cc-btn.cc-allow',
+      '#gdpr-cookie-accept',
+      '.js-cookie-consent-agree',
       'button[id*="cookie" i][id*="accept" i]',
-      'button[id*="cookie" i][id*="agree" i]',
       'button[class*="cookie" i][class*="accept" i]',
       'button[class*="consent" i][class*="accept" i]',
-      'a[id*="cookie" i][id*="accept" i]',
-      '[data-testid*="cookie" i] button',
-      '[aria-label*="accept" i][aria-label*="cookie" i]',
-      '[aria-label*="consent" i]',
     ];
 
     for (const selector of acceptSelectors) {
       try {
         const btn = page.locator(selector).first();
-        if (await btn.isVisible({ timeout: 200 })) {
-          await btn.click({ timeout: 1000 });
-          logger.debug({ selector }, 'Cookie banner dismissed via click');
-          await page.waitForTimeout(500);
-          return; // Successfully clicked, done
+        if (await btn.isVisible({ timeout: 100 })) {
+          await btn.click({ timeout: 500 });
+          await page.waitForTimeout(300);
+          return;
         }
       } catch {
         // Selector not found or not clickable, try next
@@ -246,25 +222,19 @@ async function dismissCookieBanners(page: import('playwright').Page): Promise<vo
       'Accept All',
       'Accept all cookies',
       'Accept Cookies',
-      'Accept all',
       'Allow All',
-      'Allow all cookies',
-      'Allow Cookies',
       'I Accept',
       'I Agree',
       'Got it',
-      'OK',
-      'Agree',
       'Accept',
     ];
 
     for (const text of textPatterns) {
       try {
         const btn = page.locator(`button:has-text("${text}"), a:has-text("${text}")`).first();
-        if (await btn.isVisible({ timeout: 200 })) {
-          await btn.click({ timeout: 1000 });
-          logger.debug({ text }, 'Cookie banner dismissed via text match');
-          await page.waitForTimeout(500);
+        if (await btn.isVisible({ timeout: 100 })) {
+          await btn.click({ timeout: 500 });
+          await page.waitForTimeout(300);
           return;
         }
       } catch {
@@ -275,7 +245,6 @@ async function dismissCookieBanners(page: import('playwright').Page): Promise<vo
     // Final fallback: hide all cookie-related overlays via CSS
     await page.addStyleTag({
       content: `
-        /* Hide common cookie banner containers */
         #onetrust-banner-sdk,
         #onetrust-consent-sdk,
         #CybotCookiebotDialog,
@@ -304,7 +273,6 @@ async function dismissCookieBanners(page: import('playwright').Page): Promise<vo
           opacity: 0 !important;
           pointer-events: none !important;
         }
-        /* Remove any cookie-related backdrop overlays */
         .onetrust-pc-dark-filter,
         .cky-overlay,
         [class*="cookie" i][class*="overlay" i],
@@ -313,7 +281,6 @@ async function dismissCookieBanners(page: import('playwright').Page): Promise<vo
         }
       `
     });
-    logger.debug('Cookie banner CSS fallback applied');
   } catch (error) {
     // Non-critical — don't fail the screenshot over cookie banners
     logger.debug({ error: String(error) }, 'Cookie banner dismissal failed (non-critical)');
