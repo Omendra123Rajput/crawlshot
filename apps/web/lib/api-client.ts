@@ -19,6 +19,7 @@ export interface CreateJobResponse {
 export interface JobResponse {
   jobId: string;
   url: string;
+  viewports: string[];
   status: 'queued' | 'crawling' | 'capturing' | 'packaging' | 'completed' | 'failed';
   stats: {
     pagesFound: number;

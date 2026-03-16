@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
@@ -9,8 +9,15 @@ const router = Router();
 
 const screenshotPath = process.env.SCREENSHOT_PATH || '/tmp/screenshots';
 
+// Express 4 async wrapper — catches rejected promises and forwards to error handler
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    fn(req, res, next).catch(next);
+  };
+}
+
 // GET /api/jobs/:jobId/screenshots — list available screenshot files
-router.get('/:jobId/screenshots', async (req: Request, res: Response) => {
+router.get('/:jobId/screenshots', asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params;
 
   if (!jobExists(jobId)) {
@@ -50,10 +57,10 @@ router.get('/:jobId/screenshots', async (req: Request, res: Response) => {
     logger.error({ jobId, error: String(error) }, 'Failed to list screenshots');
     res.status(500).json({ error: { code: 'LIST_ERROR', message: 'Failed to list screenshots' } });
   }
-});
+}));
 
 // GET /api/jobs/:jobId/screenshots/:viewport/:filename — serve individual screenshot
-router.get('/:jobId/screenshots/:viewport/:filename', async (req: Request, res: Response) => {
+router.get('/:jobId/screenshots/:viewport/:filename', asyncHandler(async (req: Request, res: Response) => {
   const { jobId, viewport, filename } = req.params;
 
   // Validate viewport
@@ -96,10 +103,10 @@ router.get('/:jobId/screenshots/:viewport/:filename', async (req: Request, res: 
   } catch {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Screenshot not found' } });
   }
-});
+}));
 
 // GET /api/jobs/:jobId/download
-router.get('/:jobId/download', async (req: Request, res: Response) => {
+router.get('/:jobId/download', asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params;
   const job = getJob(jobId);
 
@@ -159,6 +166,6 @@ router.get('/:jobId/download', async (req: Request, res: Response) => {
       error: { code: 'DOWNLOAD_ERROR', message: 'Failed to prepare download' },
     });
   }
-});
+}));
 
 export default router;

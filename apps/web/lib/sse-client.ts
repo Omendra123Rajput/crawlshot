@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getSSEUrl } from './api-client';
 
 export type JobStatus = 'queued' | 'crawling' | 'capturing' | 'packaging' | 'completed' | 'failed';
@@ -29,6 +29,15 @@ export interface SSEState {
   connected: boolean;
 }
 
+const STATUS_ORDER: Record<string, number> = {
+  queued: 0,
+  crawling: 1,
+  capturing: 2,
+  packaging: 3,
+  completed: 4,
+  failed: 4,
+};
+
 export function useSSE(jobId: string | null): SSEState {
   const [events, setEvents] = useState<SSEEvent[]>([]);
   const [status, setStatus] = useState<JobStatus>('queued');
@@ -36,14 +45,14 @@ export function useSSE(jobId: string | null): SSEState {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const terminalRef = useRef(false);
 
+  // --- SSE connection for real-time updates ---
   useEffect(() => {
     if (!jobId) return;
 
     const url = getSSEUrl(jobId);
     const es = new EventSource(url);
-    eventSourceRef.current = es;
 
     es.onopen = () => {
       setConnected(true);
@@ -73,6 +82,7 @@ export function useSSE(jobId: string | null): SSEState {
         if (data.event === 'complete' && data.downloadUrl) {
           setDownloadUrl(data.downloadUrl);
           setStatus('completed');
+          terminalRef.current = true;
           es.close();
           setConnected(false);
         }
@@ -80,6 +90,7 @@ export function useSSE(jobId: string | null): SSEState {
         if (data.event === 'error') {
           setError(data.message || 'Unknown error');
           setStatus('failed');
+          terminalRef.current = true;
           es.close();
           setConnected(false);
         }
@@ -95,6 +106,57 @@ export function useSSE(jobId: string | null): SSEState {
     return () => {
       es.close();
       setConnected(false);
+    };
+  }, [jobId]);
+
+  // --- REST polling fallback ---
+  // Ensures progress updates even when SSE fails (404, proxy buffering, etc.)
+  useEffect(() => {
+    if (!jobId) return;
+    let active = true;
+
+    const poll = async () => {
+      if (!active || terminalRef.current) return;
+
+      try {
+        const res = await fetch(`/api/jobs/${jobId}`);
+        if (!res.ok) return;
+        const job = await res.json();
+
+        // Monotonic status update: only advance, never regress
+        setStatus((prev) => {
+          const prevOrder = STATUS_ORDER[prev] ?? 0;
+          const nextOrder = STATUS_ORDER[job.status] ?? 0;
+          return nextOrder >= prevOrder ? job.status : prev;
+        });
+
+        // Monotonic stats update: take the max of each field
+        setStats((prev) => ({
+          pagesFound: Math.max(prev.pagesFound, job.stats?.pagesFound ?? 0),
+          pagesScreenshotted: Math.max(prev.pagesScreenshotted, job.stats?.pagesScreenshotted ?? 0),
+          pagesFailed: Math.max(prev.pagesFailed, job.stats?.pagesFailed ?? 0),
+          totalExpected: prev.totalExpected || ((job.stats?.pagesFound ?? 0) * (job.viewports?.length ?? 2)),
+        }));
+
+        if (job.downloadUrl) setDownloadUrl(job.downloadUrl);
+        if (job.error) setError(job.error);
+
+        if (job.status === 'completed' || job.status === 'failed') {
+          terminalRef.current = true;
+        }
+      } catch {
+        // Silently ignore polling errors — SSE or next poll will catch up
+      }
+    };
+
+    // Initial poll immediately to get current state
+    poll();
+    // Then poll every 2 seconds
+    const interval = setInterval(poll, 2000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
     };
   }, [jobId]);
 
