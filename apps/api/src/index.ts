@@ -13,6 +13,10 @@ import downloadRouter from './routes/download';
 
 const app = express();
 
+// Trust reverse proxy (Railway, Render, etc.) so that req.ip is the real
+// client IP and express-rate-limit doesn't throw ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(corsMiddleware);
