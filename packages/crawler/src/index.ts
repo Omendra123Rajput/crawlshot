@@ -37,16 +37,20 @@ export async function crawlSite(
   await robots.fetch(baseUrl);
   log.info('robots.txt loaded');
 
-  // 2. Parse sitemap.xml and seed queue (depth 1 — one click from root)
-  const sitemapUrls = await parseSitemap(baseUrl);
-  for (const url of sitemapUrls) {
-    const normalized = normalizeUrl(url, baseUrl);
-    if (normalized && !visited.has(normalized)) {
-      visited.add(normalized);
-      queue.push({ url: normalized, depth: 1 });
+  // 2. Parse sitemap.xml and seed queue — only if depth allows (sitemap pages are depth 1)
+  if (maxDepth === -1 || maxDepth >= 1) {
+    const sitemapUrls = await parseSitemap(baseUrl);
+    for (const url of sitemapUrls) {
+      const normalized = normalizeUrl(url, baseUrl);
+      if (normalized && !visited.has(normalized)) {
+        visited.add(normalized);
+        queue.push({ url: normalized, depth: 1 });
+      }
     }
+    log.info({ sitemapSeeds: queue.length }, 'Sitemap URLs seeded');
+  } else {
+    log.info({ maxDepth }, 'Skipping sitemap — depth too shallow');
   }
-  log.info({ sitemapSeeds: queue.length }, 'Sitemap URLs seeded');
 
   // 3. Seed with base URL if not already present (depth 0 — root)
   const normalizedBase = normalizeUrl(baseUrl, baseUrl);
@@ -62,6 +66,9 @@ export async function crawlSite(
 
     const batchPromises = batch.map(async (item) => {
       if (foundPages.length >= MAX_PAGES) return;
+
+      // Skip pages beyond maxDepth entirely (don't visit, don't screenshot)
+      if (maxDepth !== -1 && item.depth > maxDepth) return;
 
       // Check robots.txt
       if (!robots.isAllowed(item.url)) {

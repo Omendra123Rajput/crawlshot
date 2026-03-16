@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { JobStatus, SSEEvent } from '@/lib/sse-client';
 
 interface JobProgressProps {
@@ -27,12 +27,10 @@ const statusConfig: Record<JobStatus, { label: string; color: string; pulse: boo
 
 /**
  * Eased progress: starts fast, slows down as it approaches completion.
- * Creates the perception of immediate feedback while being honest about actual progress.
  */
 function easeProgress(realPercent: number): number {
   if (realPercent <= 0) return 0;
   if (realPercent >= 100) return 100;
-  // Ease-out cubic: fast start, slow finish
   const t = realPercent / 100;
   const eased = 1 - Math.pow(1 - t, 3);
   return Math.round(eased * 100);
@@ -49,26 +47,11 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
       ? Math.round((stats.pagesScreenshotted / denominator) * 100)
       : 0;
   const realPercent = Math.min(rawPercent, 100);
-
-  // Apply illusion: eased progress that starts fast
   const displayPercent = status === 'completed' ? 100 : easeProgress(realPercent);
 
-  // Optimistic initial progress — show a small amount of progress immediately
-  const [optimisticBump, setOptimisticBump] = useState(0);
-  useEffect(() => {
-    if (status === 'queued' || status === 'crawling') {
-      // Show a quick 2-8% bump within first few seconds to feel responsive
-      const t1 = setTimeout(() => setOptimisticBump(2), 300);
-      const t2 = setTimeout(() => setOptimisticBump(5), 1000);
-      const t3 = setTimeout(() => setOptimisticBump(8), 2500);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-    }
-    setOptimisticBump(0);
-  }, [status]);
-
-  const shownPercent = status === 'completed'
-    ? 100
-    : Math.max(displayPercent, optimisticBump);
+  // During crawling/queued: show indeterminate bar (no percentage)
+  // During capturing/packaging/completed: show actual percentage
+  const isCrawlingPhase = status === 'queued' || status === 'crawling';
 
   // Auto-scroll log feed
   useEffect(() => {
@@ -119,31 +102,50 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
         <div className="flex justify-between text-sm">
           <span className="text-[var(--text-secondary)]">Progress</span>
           <span className="text-[var(--text-primary)] font-medium">
-            {status === 'completed' ? '100' : realPercent}%
+            {isCrawlingPhase
+              ? `Discovering pages...`
+              : `${status === 'completed' ? 100 : realPercent}%`}
           </span>
         </div>
         <div className="h-3 rounded-full bg-white/5 overflow-hidden">
-          <div
-            className="h-full rounded-full progress-bar-fill relative"
-            style={{ width: `${shownPercent}%` }}
-          >
-            {/* Shimmer overlay on active progress */}
-            {status !== 'completed' && status !== 'failed' && shownPercent > 0 && (
-              <div className="absolute inset-0 overflow-hidden rounded-full">
-                <div
-                  className="absolute inset-0 animate-shimmer"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
-                    animation: 'shimmer 1.8s ease-in-out infinite',
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          {isCrawlingPhase ? (
+            /* Indeterminate sliding bar during crawling */
+            <div className="h-full w-full relative">
+              <div
+                className="absolute h-full rounded-full progress-bar-fill"
+                style={{
+                  width: '30%',
+                  animation: 'indeterminate 1.8s ease-in-out infinite',
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              className="h-full rounded-full progress-bar-fill relative"
+              style={{ width: `${displayPercent}%` }}
+            >
+              {/* Shimmer overlay on active progress */}
+              {status !== 'completed' && status !== 'failed' && displayPercent > 0 && (
+                <div className="absolute inset-0 overflow-hidden rounded-full">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
+                      animation: 'shimmer 1.8s ease-in-out infinite',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        {/* Status hint text */}
         {status === 'packaging' && (
           <p className="text-xs text-[var(--text-muted)]">Packaging screenshots into ZIP...</p>
+        )}
+        {status === 'crawling' && stats.pagesFound > 0 && (
+          <p className="text-xs text-[var(--text-muted)]">
+            Found {stats.pagesFound.toLocaleString()} pages so far...
+          </p>
         )}
       </div>
 

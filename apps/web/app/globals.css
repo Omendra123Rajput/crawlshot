@@ -107,6 +107,18 @@ body {
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+@keyframes indeterminate {
+  0% {
+    left: -30%;
+  }
+  50% {
+    left: 70%;
+  }
+  100% {
+    left: -30%;
+  }
+}
+
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);

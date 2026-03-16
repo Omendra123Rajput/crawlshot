@@ -102,19 +102,25 @@ async function captureWithTimeout(
         // 3. Wait for fonts to finish loading
         await page.evaluate(() => document.fonts.ready).catch(() => {});
 
-        // 4. Initial settle — let page JS initialize
+        // 4. Dismiss cookie banners / consent dialogs
+        await dismissCookieBanners(page);
+
+        // 5. Initial settle — let page JS initialize
         await page.waitForTimeout(1500);
 
-        // 5. Scroll through entire page to trigger lazy loading + animations
+        // 6. Scroll through entire page to trigger lazy loading + animations
         await triggerLazyLoading(page);
 
-        // 6. Wait for network to settle after lazy loads
+        // 7. Wait for network to settle after lazy loads
         await page.waitForLoadState('networkidle').catch(() => {});
 
-        // 7. Final settle for animations
+        // 8. Dismiss any cookie banners that appeared after scroll/lazy-load
+        await dismissCookieBanners(page);
+
+        // 9. Final settle for animations
         await page.waitForTimeout(ANIMATION_SETTLE_MS);
 
-        // 8. CRITICAL: Force all elements to their visible/final state.
+        // 10. CRITICAL: Force all elements to their visible/final state.
         //    Many sites use IntersectionObserver to add/remove CSS classes
         //    that control opacity/transform animations. When Playwright
         //    takes a fullPage screenshot from the top, off-screen elements
@@ -149,7 +155,7 @@ async function captureWithTimeout(
           `
         });
 
-        // 9. Also force opacity/transform on ALL elements that might be hidden
+        // 11. Also force opacity/transform on ALL elements that might be hidden
         await page.evaluate(() => {
           const all = document.querySelectorAll('*');
           for (const el of all) {
@@ -169,14 +175,14 @@ async function captureWithTimeout(
           }
         });
 
-        // 10. Brief wait for style recalculation
+        // 12. Brief wait for style recalculation
         await page.waitForTimeout(500);
 
-        // 11. Scroll to top
+        // 13. Scroll to top
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.waitForTimeout(300);
 
-        // 12. Capture full-page screenshot
+        // 14. Capture full-page screenshot
         await page.screenshot({
           fullPage: true,
           path: outputPath,
@@ -187,5 +193,129 @@ async function captureWithTimeout(
     ]);
   } finally {
     await context.close();
+  }
+}
+
+/**
+ * Attempt to dismiss cookie consent banners by:
+ * 1. Clicking common accept/close buttons
+ * 2. Hiding remaining banner elements via CSS
+ */
+async function dismissCookieBanners(page: import('playwright').Page): Promise<void> {
+  try {
+    // Try clicking common cookie accept buttons (ordered by specificity)
+    const acceptSelectors = [
+      // Common CMP (Consent Management Platform) buttons
+      '#onetrust-accept-btn-handler',           // OneTrust
+      '.onetrust-close-btn-handler',            // OneTrust close
+      '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll', // Cookiebot
+      '#CybotCookiebotDialogBodyButtonAccept',  // Cookiebot
+      '[data-cookiefirst-action="accept"]',      // CookieFirst
+      '#cookie-law-info-bar .cli_action_button', // Cookie Law Info
+      '.cc-btn.cc-dismiss',                      // Cookie Consent (Osano)
+      '.cc-btn.cc-allow',                        // Cookie Consent accept
+      '#gdpr-cookie-accept',                     // GDPR Cookie Compliance
+      '.js-cookie-consent-agree',                // Generic
+      // Generic text-based selectors
+      'button[id*="cookie" i][id*="accept" i]',
+      'button[id*="cookie" i][id*="agree" i]',
+      'button[class*="cookie" i][class*="accept" i]',
+      'button[class*="consent" i][class*="accept" i]',
+      'a[id*="cookie" i][id*="accept" i]',
+      '[data-testid*="cookie" i] button',
+      '[aria-label*="accept" i][aria-label*="cookie" i]',
+      '[aria-label*="consent" i]',
+    ];
+
+    for (const selector of acceptSelectors) {
+      try {
+        const btn = page.locator(selector).first();
+        if (await btn.isVisible({ timeout: 200 })) {
+          await btn.click({ timeout: 1000 });
+          logger.debug({ selector }, 'Cookie banner dismissed via click');
+          await page.waitForTimeout(500);
+          return; // Successfully clicked, done
+        }
+      } catch {
+        // Selector not found or not clickable, try next
+      }
+    }
+
+    // Fallback: try to find and click buttons by visible text content
+    const textPatterns = [
+      'Accept All',
+      'Accept all cookies',
+      'Accept Cookies',
+      'Accept all',
+      'Allow All',
+      'Allow all cookies',
+      'Allow Cookies',
+      'I Accept',
+      'I Agree',
+      'Got it',
+      'OK',
+      'Agree',
+      'Accept',
+    ];
+
+    for (const text of textPatterns) {
+      try {
+        const btn = page.locator(`button:has-text("${text}"), a:has-text("${text}")`).first();
+        if (await btn.isVisible({ timeout: 200 })) {
+          await btn.click({ timeout: 1000 });
+          logger.debug({ text }, 'Cookie banner dismissed via text match');
+          await page.waitForTimeout(500);
+          return;
+        }
+      } catch {
+        // Not found, try next
+      }
+    }
+
+    // Final fallback: hide all cookie-related overlays via CSS
+    await page.addStyleTag({
+      content: `
+        /* Hide common cookie banner containers */
+        #onetrust-banner-sdk,
+        #onetrust-consent-sdk,
+        #CybotCookiebotDialog,
+        #cookie-law-info-bar,
+        .cc-window,
+        .cookie-consent,
+        .cookie-banner,
+        .cookie-notice,
+        .gdpr-banner,
+        .consent-banner,
+        [class*="cookie-banner" i],
+        [class*="cookie-consent" i],
+        [class*="cookie-notice" i],
+        [class*="cookie-popup" i],
+        [class*="cookieBanner" i],
+        [class*="cookieConsent" i],
+        [id*="cookie-banner" i],
+        [id*="cookie-consent" i],
+        [id*="cookie-notice" i],
+        [id*="cookieBanner" i],
+        [id*="gdpr" i],
+        [aria-label*="cookie" i][role="dialog"],
+        [aria-label*="consent" i][role="dialog"] {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+        /* Remove any cookie-related backdrop overlays */
+        .onetrust-pc-dark-filter,
+        .cky-overlay,
+        [class*="cookie" i][class*="overlay" i],
+        [class*="consent" i][class*="overlay" i] {
+          display: none !important;
+        }
+      `
+    });
+    logger.debug('Cookie banner CSS fallback applied');
+  } catch (error) {
+    // Non-critical — don't fail the screenshot over cookie banners
+    logger.debug({ error: String(error) }, 'Cookie banner dismissal failed (non-critical)');
   }
 }
