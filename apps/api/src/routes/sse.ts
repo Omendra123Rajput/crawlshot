@@ -13,7 +13,6 @@ router.get('/:jobId/stream', (req: Request, res: Response, next: NextFunction) =
     res.status(404).json({ error: { code: 'JOB_NOT_FOUND', message: `Job not found: ${jobId}` } });
     return;
   }
-  const job = getJob(jobId);
 
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -22,17 +21,26 @@ router.get('/:jobId/stream', (req: Request, res: Response, next: NextFunction) =
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
-  // Send current state immediately
+  // IMPORTANT: Subscribe FIRST, then send current state.
+  // This prevents a race condition where events are lost between
+  // reading the job state and subscribing to future events.
+  // Any duplicate events are harmless — the frontend just updates to latest values.
+  const unsubscribe = subscribeToJob(jobId, res);
+
+  // Now read current state (which includes any events that arrived during subscription setup)
+  const job = getJob(jobId);
+  const totalExpected = job.stats.pagesFound * job.viewports.length;
   const initialEvent = {
     event: 'progress' as const,
     status: job.status,
     pagesFound: job.stats.pagesFound,
     pagesScreenshotted: job.stats.pagesScreenshotted,
+    totalExpected,
     ...(job.downloadUrl ? { downloadUrl: job.downloadUrl } : {}),
   };
   res.write(`data: ${JSON.stringify(initialEvent)}\n\n`);
 
-  // If job is already complete or failed, close immediately
+  // If job is already complete or failed, send terminal event and close
   if (job.status === 'completed' || job.status === 'failed') {
     if (job.status === 'completed') {
       res.write(`data: ${JSON.stringify({ event: 'complete', downloadUrl: job.downloadUrl })}\n\n`);
@@ -40,11 +48,9 @@ router.get('/:jobId/stream', (req: Request, res: Response, next: NextFunction) =
       res.write(`data: ${JSON.stringify({ event: 'error', message: job.error })}\n\n`);
     }
     res.end();
+    unsubscribe();
     return;
   }
-
-  // Subscribe to real-time events
-  const unsubscribe = subscribeToJob(jobId, res);
 
   // Keep-alive ping every 30 seconds
   const keepAlive = setInterval(() => {

@@ -49,9 +49,13 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
   const realPercent = Math.min(rawPercent, 100);
   const displayPercent = status === 'completed' ? 100 : easeProgress(realPercent);
 
-  // During crawling/queued: show indeterminate bar (no percentage)
-  // During capturing/packaging/completed: show actual percentage
-  const isCrawlingPhase = status === 'queued' || status === 'crawling';
+  // Show indeterminate bar when we don't have meaningful progress data yet:
+  // - queued/crawling: we're still discovering pages
+  // - capturing with totalExpected=0: brief transition before first progress event arrives
+  const isIndeterminate =
+    status === 'queued' ||
+    status === 'crawling' ||
+    (status === 'capturing' && stats.totalExpected === 0);
 
   // Auto-scroll log feed
   useEffect(() => {
@@ -102,13 +106,13 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
         <div className="flex justify-between text-sm">
           <span className="text-[var(--text-secondary)]">Progress</span>
           <span className="text-[var(--text-primary)] font-medium">
-            {isCrawlingPhase
-              ? `Discovering pages...`
+            {isIndeterminate
+              ? (status === 'capturing' ? 'Preparing captures...' : 'Discovering pages...')
               : `${status === 'completed' ? 100 : realPercent}%`}
           </span>
         </div>
         <div className="h-3 rounded-full bg-white/5 overflow-hidden">
-          {isCrawlingPhase ? (
+          {isIndeterminate ? (
             /* Indeterminate sliding bar during crawling */
             <div className="h-full w-full relative">
               <div
