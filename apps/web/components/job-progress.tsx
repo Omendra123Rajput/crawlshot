@@ -17,12 +17,12 @@ interface JobProgressProps {
 }
 
 const statusConfig: Record<JobStatus, { label: string; color: string; pulse: boolean }> = {
-  queued: { label: 'Queued', color: 'bg-gray-500', pulse: false },
-  crawling: { label: 'Crawling', color: 'bg-blue-500', pulse: true },
-  capturing: { label: 'Capturing', color: 'bg-indigo-500', pulse: true },
-  packaging: { label: 'Packaging', color: 'bg-amber-500', pulse: true },
-  completed: { label: 'Completed', color: 'bg-emerald-500', pulse: false },
-  failed: { label: 'Failed', color: 'bg-red-500', pulse: false },
+  queued: { label: 'Queued', color: 'bg-[var(--text-muted)]', pulse: false },
+  crawling: { label: 'Crawling', color: 'bg-[var(--accent-primary)]', pulse: true },
+  capturing: { label: 'Capturing', color: 'bg-[var(--accent-primary)]', pulse: true },
+  packaging: { label: 'Packaging', color: 'bg-[var(--warning)]', pulse: true },
+  completed: { label: 'Completed', color: 'bg-[var(--success)]', pulse: false },
+  failed: { label: 'Failed', color: 'bg-[var(--error)]', pulse: false },
 };
 
 function formatElapsed(seconds: number): string {
@@ -48,7 +48,7 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
     return () => clearInterval(id);
   }, [isActive]);
 
-  // Use totalExpected (pagesFound × viewports) as denominator to avoid >100%
+  // Use totalExpected (pagesFound x viewports) as denominator to avoid >100%
   const denominator = stats.totalExpected > 0 ? stats.totalExpected : stats.pagesFound;
   const rawPercent =
     denominator > 0
@@ -56,15 +56,12 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
       : 0;
   const percent = status === 'completed' ? 100 : Math.min(rawPercent, 100);
 
-  // Show indeterminate bar when we don't have meaningful progress data yet:
-  // - queued/crawling: we're still discovering pages
-  // - capturing with totalExpected=0: brief transition before first progress event arrives
   const isIndeterminate =
     status === 'queued' ||
     status === 'crawling' ||
     (status === 'capturing' && stats.totalExpected === 0);
 
-  // Auto-scroll log feed
+  // Auto-scroll activity feed
   useEffect(() => {
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -77,8 +74,8 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
       <div className="glass p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-[var(--text-secondary)]">Scanning</p>
-            <p className="text-lg text-[var(--text-primary)] font-medium truncate max-w-md">
+            <p className="label-caps text-[var(--text-tertiary)]">Scanning</p>
+            <p className="text-lg text-[var(--text-primary)] font-medium tracking-tight truncate max-w-md mt-1">
               {url}
             </p>
           </div>
@@ -102,7 +99,7 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
         </div>
 
         {error && (
-          <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
+          <div className="px-4 py-3 rounded-xl bg-[var(--error)]/10 border border-[var(--error)]/20">
             <p className="text-sm text-[var(--error)]">{error}</p>
           </div>
         )}
@@ -116,18 +113,17 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
       </div>
 
       {/* Progress Bar */}
-      <div className="glass p-4 space-y-2">
+      <div className="glass p-5 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-[var(--text-secondary)]">Progress</span>
-          <span className="text-[var(--text-primary)] font-medium">
+          <span className="text-[var(--text-primary)] font-medium tabular-nums">
             {isIndeterminate
               ? (status === 'capturing' ? 'Preparing captures...' : 'Discovering pages...')
               : `${percent}%`}
           </span>
         </div>
-        <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+        <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
           {isIndeterminate ? (
-            /* Indeterminate sliding bar during crawling */
             <div className="h-full w-full relative">
               <div
                 className="absolute h-full rounded-full progress-bar-fill"
@@ -142,7 +138,6 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
               className="h-full rounded-full progress-bar-fill relative"
               style={{ width: `${percent}%` }}
             >
-              {/* Shimmer overlay on active progress */}
               {status !== 'completed' && status !== 'failed' && percent > 0 && (
                 <div className="absolute inset-0 overflow-hidden rounded-full">
                   <div
@@ -158,31 +153,31 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
           )}
         </div>
         {status === 'packaging' && (
-          <p className="text-xs text-[var(--text-muted)]">Packaging screenshots into ZIP...</p>
+          <p className="text-xs text-[var(--text-tertiary)]">Packaging screenshots into ZIP...</p>
         )}
         {status === 'capturing' && stats.totalExpected > 0 && (
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-[var(--text-tertiary)]">
             Capturing screenshot {stats.pagesScreenshotted} of {stats.totalExpected}...
           </p>
         )}
         {status === 'crawling' && stats.pagesFound > 0 && (
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-[var(--text-tertiary)]">
             Found {stats.pagesFound.toLocaleString()} pages so far...
           </p>
         )}
       </div>
 
-      {/* Log Feed */}
-      <div className="glass p-4">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Event Log</h3>
+      {/* Activity Feed */}
+      <div className="glass p-5">
+        <h3 className="label-caps text-[var(--text-muted)] mb-4">Activity</h3>
         <div
           ref={logRef}
-          className="max-h-[300px] overflow-y-auto space-y-1 text-xs font-mono"
+          className="max-h-[280px] overflow-y-auto space-y-0"
         >
           {events.map((event, i) => (
-            <div key={i} className="flex gap-2 text-[var(--text-muted)]">
-              <span className="text-[var(--text-secondary)] shrink-0">
-                {new Date().toLocaleTimeString()}
+            <div key={i} className="flex gap-3 py-2 border-b border-[var(--border-subtle)] last:border-0 text-xs">
+              <span className="text-[var(--text-muted)] shrink-0 tabular-nums">
+                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
               <span
                 className={
@@ -193,17 +188,15 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
                     : 'text-[var(--text-secondary)]'
                 }
               >
-                [{event.event}] {event.status && `status=${event.status}`}{' '}
-                {event.pagesFound !== undefined && `found=${event.pagesFound}`}{' '}
-                {event.pagesScreenshotted !== undefined &&
-                  `captured=${event.pagesScreenshotted}`}
+                {event.status && `${event.status}`}{' '}
+                {event.pagesFound !== undefined && `${event.pagesFound} pages found`}{' '}
+                {event.pagesScreenshotted !== undefined && `${event.pagesScreenshotted} captured`}
                 {event.message && event.message}
-                {event.downloadUrl && `download=${event.downloadUrl}`}
               </span>
             </div>
           ))}
           {events.length === 0 && (
-            <p className="text-[var(--text-muted)]">Waiting for events...</p>
+            <p className="text-[var(--text-muted)] py-2">Waiting for events...</p>
           )}
         </div>
       </div>
@@ -213,9 +206,11 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="glass p-4 text-center">
-      <p className="text-2xl font-bold text-[var(--text-primary)]">{value.toLocaleString()}</p>
-      <p className="text-xs text-[var(--text-secondary)] mt-1">{label}</p>
+    <div className="glass card-lift p-5 text-center">
+      <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums">
+        {value.toLocaleString()}
+      </p>
+      <p className="label-caps text-[var(--text-tertiary)] mt-1.5">{label}</p>
     </div>
   );
 }

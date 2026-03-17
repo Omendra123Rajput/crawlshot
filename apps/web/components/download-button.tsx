@@ -18,9 +18,9 @@ export default function DownloadButton({ jobId, visible }: DownloadButtonProps) 
   return (
     <button
       onClick={handleDownload}
-      className="w-full py-4 px-6 accent-gradient rounded-xl text-white font-semibold text-lg
+      className="w-full py-4 px-6 bg-[var(--accent-primary)] rounded-xl text-zinc-950 font-semibold text-lg
                  flex items-center justify-center gap-3
-                 animate-float hover:animate-pulse-glow transition-all duration-300"
+                 btn-press focus-ring card-lift hover:brightness-110 transition-all duration-300"
     >
       <Download size={24} />
       Download ZIP

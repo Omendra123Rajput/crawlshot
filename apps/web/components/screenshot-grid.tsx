@@ -47,10 +47,10 @@ export default function ScreenshotGrid({ jobId, pagesScreenshotted }: Screenshot
 
   return (
     <div className="glass p-6">
-      <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+      <h3 className="label-caps text-[var(--text-muted)] mb-4">
         Screenshots ({screenshots.length || pagesScreenshotted})
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {displayShots.length > 0
           ? displayShots.map((shot, i) => (
               <ScreenshotThumbnail key={`${shot.viewport}-${shot.filename}`} shot={shot} index={i} />
@@ -76,7 +76,8 @@ function ScreenshotThumbnail({ shot, index }: { shot: ScreenshotInfo; index: num
   return (
     <div
       className="relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-[var(--border-subtle)]
-                 group cursor-pointer animate-fade-up hover:border-[var(--border-active)] transition-all duration-300"
+                 group cursor-pointer animate-fade-up transition-all duration-300
+                 hover:border-[var(--border-active)] hover:scale-[1.02]"
       style={{ animationDelay: `${index * 80}ms` }}
     >
       {!error ? (

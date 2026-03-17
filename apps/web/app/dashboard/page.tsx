@@ -9,7 +9,7 @@ import JobProgress from '@/components/job-progress';
 import ScreenshotGrid from '@/components/screenshot-grid';
 import DownloadButton from '@/components/download-button';
 import DashboardSkeleton from '@/components/dashboard-skeleton';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Search, AlertCircle } from 'lucide-react';
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -41,14 +41,18 @@ function DashboardContent() {
   if (!jobId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="glass p-8 text-center space-y-4 max-w-md animate-fade-up">
-          <h2 className="text-xl font-semibold text-[var(--text-primary)]">No Job Selected</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
+        <div className="glass p-10 text-center space-y-5 max-w-md animate-fade-up">
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent-muted)] flex items-center justify-center mx-auto">
+            <Search size={24} className="text-[var(--accent-primary)]" />
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">No Job Selected</h2>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
             Submit a URL on the home page to start a new scan.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 accent-gradient rounded-xl text-white text-sm font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--accent-primary)] rounded-xl text-zinc-950 text-sm font-medium
+                       btn-press focus-ring hover:brightness-110 transition-all duration-300"
           >
             <ArrowLeft size={16} />
             New Scan
@@ -66,12 +70,16 @@ function DashboardContent() {
   if (fetchError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="glass p-8 text-center space-y-4 max-w-md animate-fade-up">
-          <h2 className="text-xl font-semibold text-[var(--error)]">Error</h2>
-          <p className="text-sm text-[var(--text-secondary)]">{fetchError}</p>
+        <div className="glass p-10 text-center space-y-5 max-w-md animate-fade-up">
+          <div className="w-12 h-12 rounded-xl bg-[var(--error)]/10 flex items-center justify-center mx-auto">
+            <AlertCircle size={24} className="text-[var(--error)]" />
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--error)]">Error</h2>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{fetchError}</p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 accent-gradient rounded-xl text-white text-sm font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--accent-primary)] rounded-xl text-zinc-950 text-sm font-medium
+                       btn-press focus-ring hover:brightness-110 transition-all duration-300"
           >
             <ArrowLeft size={16} />
             New Scan
@@ -87,7 +95,7 @@ function DashboardContent() {
         {/* Back button */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] link-hover hover:text-[var(--accent-primary)] transition-colors mb-8"
         >
           <ArrowLeft size={16} />
           New Scan

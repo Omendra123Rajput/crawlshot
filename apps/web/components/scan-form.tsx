@@ -72,7 +72,7 @@ export default function ScanForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="glass p-8 max-w-[600px] w-full mx-auto space-y-6">
+    <form onSubmit={handleSubmit} className="glass p-8 lg:p-10 w-full mx-auto space-y-6">
       <div className="space-y-2">
         <input
           type="url"
@@ -106,11 +106,11 @@ export default function ScanForm() {
               type="button"
               onClick={() => setMaxDepth(option.value)}
               disabled={loading}
-              className={`px-3 py-1.5 rounded-lg border transition-all duration-300 text-xs
+              className={`px-3 py-1.5 rounded-lg border transition-all duration-300 text-xs btn-press focus-ring
                 ${
                   maxDepth === option.value
-                    ? 'border-[var(--border-active)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                    : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)]'
+                    ? 'border-[var(--border-active)] bg-[var(--accent-muted)] text-[var(--accent-primary)]'
+                    : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)] hover:text-[var(--text-secondary)]'
                 } disabled:opacity-50`}
               title={option.description}
             >
@@ -128,11 +128,11 @@ export default function ScanForm() {
           type="button"
           onClick={() => toggleViewport('desktop')}
           disabled={loading}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 text-sm
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 text-sm btn-press focus-ring
             ${
               viewports.has('desktop')
-                ? 'border-[var(--border-active)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)]'
+                ? 'border-[var(--border-active)] bg-[var(--accent-muted)] text-[var(--accent-primary)]'
+                : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)] hover:text-[var(--text-secondary)]'
             } disabled:opacity-50`}
         >
           <Monitor size={16} />
@@ -142,11 +142,11 @@ export default function ScanForm() {
           type="button"
           onClick={() => toggleViewport('mobile')}
           disabled={loading}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 text-sm
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 text-sm btn-press focus-ring
             ${
               viewports.has('mobile')
-                ? 'border-[var(--border-active)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)]'
+                ? 'border-[var(--border-active)] bg-[var(--accent-muted)] text-[var(--accent-primary)]'
+                : 'border-[var(--border-subtle)] bg-white/3 text-[var(--text-muted)] hover:border-[var(--border-active)] hover:text-[var(--text-secondary)]'
             } disabled:opacity-50`}
         >
           <Smartphone size={16} />
@@ -157,9 +157,9 @@ export default function ScanForm() {
       <button
         type="submit"
         disabled={loading || !url}
-        className="w-full py-3 px-6 accent-gradient rounded-xl text-white font-semibold
+        className="w-full py-3 px-6 bg-[var(--accent-primary)] rounded-xl text-zinc-950 font-semibold
                    flex items-center justify-center gap-2
-                   hover:animate-pulse-glow transition-all duration-300
+                   btn-press focus-ring hover:brightness-110 transition-all duration-300
                    disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (

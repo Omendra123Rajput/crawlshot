@@ -3,19 +3,38 @@
 @tailwind utilities;
 
 :root {
-  --bg-base: #050508;
-  --bg-surface: rgba(255, 255, 255, 0.03);
+  /* Base backgrounds — zinc-950, not pure black */
+  --bg-base: #09090b;
+  --bg-surface: rgba(255, 255, 255, 0.035);
   --bg-surface-hover: rgba(255, 255, 255, 0.06);
+  --bg-elevated: rgba(255, 255, 255, 0.055);
+
+  /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(99, 102, 241, 0.6);
-  --accent-primary: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.3);
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
+  --border-active: rgba(226, 160, 82, 0.5);
+
+  /* Accent — warm amber, single accent */
+  --accent-primary: #e2a052;
+  --accent-muted: rgba(226, 160, 82, 0.15);
+  --accent-glow: rgba(226, 160, 82, 0.2);
+
+  /* Text hierarchy — 5 levels */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-muted: #52525b;
+  --text-faint: #3f3f46;
+
+  /* Semantic */
+  --success: #34d399;
+  --error: #f87171;
+  --warning: #fbbf24;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.15s var(--ease-out-expo);
+  --transition-base: 0.3s var(--ease-out-expo);
+  --transition-slow: 0.5s var(--ease-out-expo);
 }
 
 * {
@@ -27,10 +46,11 @@
 body {
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* === Surfaces === */
 
 .glass {
   background: rgba(255, 255, 255, 0.04);
@@ -40,45 +60,62 @@ body {
   border-radius: 16px;
 }
 
+.glass-hover {
+  transition: all var(--transition-base);
+}
 .glass-hover:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(99, 102, 241, 0.4);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(226, 160, 82, 0.3);
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+/* === Accent utilities === */
+
+.accent-text {
+  color: var(--accent-primary);
 }
 
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
-  }
+.accent-gradient {
+  background: var(--accent-primary);
 }
 
-@keyframes scan-line {
-  0% {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent-primary) 0%, #c4873e 100%);
+  transition: width 0.8s var(--ease-out-expo);
 }
+
+/* === Interactive states === */
+
+.btn-press:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+.card-lift {
+  transition: all var(--transition-base);
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.link-hover {
+  text-decoration: none;
+  background-image: linear-gradient(var(--accent-primary), var(--accent-primary));
+  background-size: 0% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size var(--transition-base);
+}
+.link-hover:hover {
+  background-size: 100% 1px;
+}
+
+/* === Keyframes === */
 
 @keyframes fade-up {
   from {
@@ -91,20 +128,14 @@ body {
   }
 }
 
-.gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.accent-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-}
-
-.progress-bar-fill {
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(226, 160, 82, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(226, 160, 82, 0.3);
+  }
 }
 
 @keyframes indeterminate {
@@ -129,13 +160,16 @@ body {
 }
 
 @keyframes skeleton-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
     opacity: 0.8;
   }
 }
+
+/* === Skeletons === */
 
 .skeleton {
   position: relative;
@@ -175,4 +209,32 @@ body {
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.06);
   animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* === Typography utilities === */
+
+@layer utilities {
+  .heading-display {
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-weight: 800;
+  }
+
+  .heading-section {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .body-prose {
+    line-height: 1.7;
+    max-width: 65ch;
+  }
+
+  .label-caps {
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
 }

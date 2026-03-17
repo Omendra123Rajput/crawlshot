@@ -17,10 +17,10 @@ uniform vec2 uResolution;
 varying vec2 vUv;
 
 vec3 palette(float t) {
-  vec3 a = vec3(0.1, 0.1, 0.2);
-  vec3 b = vec3(0.05, 0.05, 0.15);
-  vec3 c = vec3(0.3, 0.2, 0.8);
-  vec3 d = vec3(0.0, 0.1, 0.4);
+  vec3 a = vec3(0.12, 0.10, 0.08);
+  vec3 b = vec3(0.08, 0.06, 0.04);
+  vec3 c = vec3(0.6, 0.4, 0.2);
+  vec3 d = vec3(0.1, 0.05, 0.0);
   return a + b * cos(6.28318 * (c * t + d));
 }
 
@@ -38,7 +38,7 @@ void main() {
   float combined = (wave1 * 0.4 + wave2 * 0.35 + wave3 * 0.25);
   vec3 color = palette(combined + uTime * 0.05) * (1.0 - dist * 0.6);
 
-  gl_FragColor = vec4(color * 0.4, 1.0);
+  gl_FragColor = vec4(color * 0.3, 1.0);
 }
 `;
 
