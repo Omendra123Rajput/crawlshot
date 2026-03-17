@@ -1,11 +1,12 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { subscribeToJob } from '../services/sse-broadcaster';
 import { getJob, jobExists } from '../services/job-store';
+import { validateJobId } from '../middleware/validate';
 
 const router = Router();
 
 // GET /api/jobs/:jobId/stream
-router.get('/:jobId/stream', (req: Request, res: Response, next: NextFunction) => {
+router.get('/:jobId/stream', validateJobId, (req: Request, res: Response, next: NextFunction) => {
   const { jobId } = req.params;
 
   // Verify job exists

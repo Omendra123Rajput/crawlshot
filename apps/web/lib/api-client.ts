@@ -72,8 +72,16 @@ export interface ScreenshotInfo {
   url: string;
 }
 
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
+
 export async function getScreenshots(jobId: string): Promise<ScreenshotInfo[]> {
   const res = await fetch(`${API_URL}/api/jobs/${jobId}/screenshots`);
+  if (res.status === 404) throw new NotFoundError('Job not found');
   if (!res.ok) return [];
   const data = await res.json();
   return data.screenshots || [];

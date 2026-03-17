@@ -3,6 +3,8 @@ import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
 import { getJob, jobExists } from '../services/job-store';
+import { validateJobId } from '../middleware/validate';
+import { downloadLimiter } from '../middleware/rate-limit';
 import { logger } from '@screenshot-crawler/utils';
 
 const router = Router();
@@ -17,7 +19,7 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
 }
 
 // GET /api/jobs/:jobId/screenshots — list available screenshot files
-router.get('/:jobId/screenshots', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:jobId/screenshots', validateJobId, asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params;
 
   if (!jobExists(jobId)) {
@@ -60,7 +62,7 @@ router.get('/:jobId/screenshots', asyncHandler(async (req: Request, res: Respons
 }));
 
 // GET /api/jobs/:jobId/screenshots/:viewport/:filename — serve individual screenshot
-router.get('/:jobId/screenshots/:viewport/:filename', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:jobId/screenshots/:viewport/:filename', validateJobId, asyncHandler(async (req: Request, res: Response) => {
   const { jobId, viewport, filename } = req.params;
 
   // Validate viewport
@@ -106,7 +108,7 @@ router.get('/:jobId/screenshots/:viewport/:filename', asyncHandler(async (req: R
 }));
 
 // GET /api/jobs/:jobId/download
-router.get('/:jobId/download', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:jobId/download', validateJobId, downloadLimiter, asyncHandler(async (req: Request, res: Response) => {
   const { jobId } = req.params;
   const job = getJob(jobId);
 

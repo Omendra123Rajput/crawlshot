@@ -3,6 +3,7 @@ import path from 'path';
 import { getBrowserPool } from './browser-pool';
 import { triggerLazyLoading } from './scroll-trigger';
 import { sanitizeFilename, safePath } from './sanitize-path';
+import { guardUrl } from '@screenshot-crawler/crawler';
 import {
   logger,
   VIEWPORTS,
@@ -87,7 +88,10 @@ async function captureWithTimeout(
 
     await Promise.race([
       (async () => {
-        // 1. Navigate and wait for initial load
+        // 1. Re-validate URL before navigation (TOCTOU DNS rebinding defense)
+        await guardUrl(url);
+
+        // 2. Navigate and wait for initial load
         await page.goto(url, {
           waitUntil: 'load',
           timeout: PAGE_LOAD_TIMEOUT_MS,

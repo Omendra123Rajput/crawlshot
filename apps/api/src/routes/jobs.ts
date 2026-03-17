@@ -1,13 +1,13 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { validateBody } from '../middleware/validate';
+import { validateBody, validateJobId } from '../middleware/validate';
 import { jobCreationLimiter } from '../middleware/rate-limit';
-import { createJob, getJob, getAllJobs } from '../services/job-store';
+import { createJob, getJob } from '../services/job-store';
 import { watchJob } from '../services/sse-broadcaster';
 import { addCrawlJob } from '@screenshot-crawler/queue';
 import { guardUrl } from '@screenshot-crawler/crawler';
-import { MAX_URL_LENGTH } from '@screenshot-crawler/utils';
+import { logger, MAX_URL_LENGTH } from '@screenshot-crawler/utils';
 
 const router = Router();
 
@@ -49,6 +49,7 @@ router.post(
       await guardUrl(url);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'URL validation failed';
+      logger.warn({ ip: req.ip, url, reason: message }, 'SSRF guard blocked URL');
       res.status(403).json({
         error: { code: 'URL_BLOCKED', message },
       });
@@ -73,15 +74,9 @@ router.post(
 );
 
 // GET /api/jobs/:jobId
-router.get('/:jobId', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:jobId', validateJobId, asyncHandler(async (req: Request, res: Response) => {
   const job = getJob(req.params.jobId);
   res.json(job);
 }));
-
-// GET /api/jobs
-router.get('/', (_req: Request, res: Response) => {
-  const jobs = getAllJobs();
-  res.json(jobs);
-});
 
 export default router;

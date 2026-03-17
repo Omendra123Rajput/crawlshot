@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { getScreenshots, type ScreenshotInfo } from '@/lib/api-client';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { getScreenshots, NotFoundError, type ScreenshotInfo } from '@/lib/api-client';
 import { ImageIcon } from 'lucide-react';
 
 interface ScreenshotGridProps {
@@ -12,15 +12,18 @@ interface ScreenshotGridProps {
 export default function ScreenshotGrid({ jobId, pagesScreenshotted }: ScreenshotGridProps) {
   const [screenshots, setScreenshots] = useState<ScreenshotInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const stoppedRef = useRef(false);
 
   const fetchScreenshots = useCallback(async () => {
-    if (!jobId || pagesScreenshotted === 0) return;
+    if (!jobId || pagesScreenshotted === 0 || stoppedRef.current) return;
     setLoading(true);
     try {
       const data = await getScreenshots(jobId);
       setScreenshots(data);
-    } catch {
-      // Silently fail — previews are non-critical
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        stoppedRef.current = true; // Stop polling — job no longer exists
+      }
     } finally {
       setLoading(false);
     }

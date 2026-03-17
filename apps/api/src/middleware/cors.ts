@@ -9,6 +9,12 @@ const allowedOrigins = config.ALLOWED_ORIGINS
   .map((o) => o.trim())
   .filter(Boolean);
 
+const isWildcard = allowedOrigins.includes('*');
+
+if (isWildcard) {
+  logger.warn('CORS configured with wildcard (*) — credentials disabled for security');
+}
+
 logger.info({ allowedOrigins }, 'CORS allowed origins configured');
 
 export const corsMiddleware = cors({
@@ -20,7 +26,7 @@ export const corsMiddleware = cors({
     }
 
     // Wildcard allows all
-    if (allowedOrigins.includes('*')) {
+    if (isWildcard) {
       callback(null, true);
       return;
     }
@@ -32,7 +38,8 @@ export const corsMiddleware = cors({
       callback(new Error(`Origin ${origin} not allowed by CORS`));
     }
   },
-  credentials: true,
+  // Never send credentials with wildcard — browsers reject it and it signals misconfiguration
+  credentials: !isWildcard,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 });
