@@ -101,6 +101,10 @@ export function useSSE(jobId: string | null): SSEState {
 
     es.onerror = () => {
       setConnected(false);
+      // If EventSource is CLOSED (non-retryable HTTP error like 404), stop reconnecting
+      if (es.readyState === EventSource.CLOSED) {
+        terminalRef.current = true;
+      }
     };
 
     return () => {
@@ -120,6 +124,11 @@ export function useSSE(jobId: string | null): SSEState {
 
       try {
         const res = await fetch(`/api/jobs/${jobId}`);
+        if (res.status === 404) {
+          // Job no longer exists in the API store (server restart) — stop polling
+          active = false;
+          return;
+        }
         if (!res.ok) return;
         const job = await res.json();
 
