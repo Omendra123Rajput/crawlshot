@@ -114,7 +114,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="text-center py-8 text-sm text-[var(--text-muted)]">
-          Built with Next.js, Express, Playwright &amp; BullMQ
+          &copy; {new Date().getFullYear()} CrawlShot. All rights reserved.
         </footer>
       </div>
     </>
