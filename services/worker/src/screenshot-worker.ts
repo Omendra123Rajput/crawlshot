@@ -3,7 +3,7 @@ import { getRedisConnection, type ScreenshotJobData, getScreenshotQueue } from '
 import { ScreenshotEngine } from '@screenshot-crawler/screenshot-engine';
 import { packageJob } from '@screenshot-crawler/storage';
 import { logger, QUEUE_NAMES, SCREENSHOT_CONCURRENCY } from '@screenshot-crawler/utils';
-import { broadcastToJob, getJobStats, incrementScreenshotted, incrementFailed, setJobPagesFound, getActiveJobs, removeJobStats } from './broadcast';
+import { broadcastToJob, getJobStats, incrementScreenshotted, incrementFailed, getActiveJobs, removeJobStats, type StatsContext } from './broadcast';
 
 const engine = new ScreenshotEngine();
 
@@ -11,15 +11,21 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
   const worker = new Worker<ScreenshotJobData>(
     QUEUE_NAMES.SCREENSHOT,
     async (job: Job<ScreenshotJobData>) => {
-      const { jobId, url, viewport, outputDir } = job.data;
+      const { jobId, url, viewport, outputDir, pagesFound, viewportCount } = job.data;
       const log = logger.child({ jobId, url, viewport, attempt: job.attemptsMade });
+
+      // Context for lazy stats recovery after worker restart
+      const statsContext: StatsContext | undefined =
+        pagesFound != null && viewportCount != null
+          ? { url, pagesFound, viewportCount }
+          : undefined;
 
       log.info('Screenshot job started');
 
       try {
         await engine.initialize();
         const outputPath = await engine.capture(url, viewport, outputDir);
-        incrementScreenshotted(jobId);
+        incrementScreenshotted(jobId, statsContext);
 
         const stats = getJobStats(jobId);
         broadcastToJob(jobId, {
@@ -53,7 +59,12 @@ export function startScreenshotWorker(): Worker<ScreenshotJobData> {
         'Screenshot job failed'
       );
       if (isFinal) {
-        incrementFailed(job.data.jobId);
+        const { url, pagesFound, viewportCount } = job.data;
+        const ctx: StatsContext | undefined =
+          pagesFound != null && viewportCount != null
+            ? { url, pagesFound, viewportCount }
+            : undefined;
+        incrementFailed(job.data.jobId, ctx);
       }
     }
   });

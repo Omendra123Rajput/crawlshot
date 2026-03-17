@@ -10,6 +10,12 @@ interface JobStats {
   startedAt: number;
 }
 
+export interface StatsContext {
+  url: string;
+  pagesFound: number;
+  viewportCount: number;
+}
+
 const jobStatsMap = new Map<string, JobStats>();
 
 export function initJobStats(jobId: string, url: string, viewportCount: number): void {
@@ -30,17 +36,39 @@ export function setJobPagesFound(jobId: string, count: number): void {
   }
 }
 
-export function incrementScreenshotted(jobId: string): void {
-  const stats = jobStatsMap.get(jobId);
+/**
+ * Ensure stats exist for a job. If missing (e.g., after worker restart),
+ * lazily initialize from the screenshot job's embedded context.
+ */
+function ensureStats(jobId: string, context?: StatsContext): JobStats | undefined {
+  let stats = jobStatsMap.get(jobId);
+  if (!stats && context) {
+    stats = {
+      pagesFound: context.pagesFound,
+      pagesScreenshotted: 0,
+      pagesFailed: 0,
+      viewports: context.viewportCount,
+      url: context.url,
+      startedAt: Date.now(),
+    };
+    jobStatsMap.set(jobId, stats);
+    logger.info({ jobId, pagesFound: context.pagesFound, viewports: context.viewportCount },
+      'Lazy-initialized job stats from screenshot job data (worker restart recovery)');
+  }
+  return stats;
+}
+
+export function incrementScreenshotted(jobId: string, context?: StatsContext): void {
+  const stats = ensureStats(jobId, context);
   if (stats) {
     stats.pagesScreenshotted++;
   } else {
-    logger.warn({ jobId }, 'incrementScreenshotted: jobId not in stats map');
+    logger.warn({ jobId }, 'incrementScreenshotted: jobId not in stats map and no context to recover');
   }
 }
 
-export function incrementFailed(jobId: string): void {
-  const stats = jobStatsMap.get(jobId);
+export function incrementFailed(jobId: string, context?: StatsContext): void {
+  const stats = ensureStats(jobId, context);
   if (stats) {
     stats.pagesFailed++;
   }

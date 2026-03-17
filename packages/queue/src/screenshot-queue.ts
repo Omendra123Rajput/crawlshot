@@ -7,6 +7,8 @@ export interface ScreenshotJobData {
   url: string;
   viewport: 'desktop' | 'mobile';
   outputDir: string;
+  pagesFound?: number;
+  viewportCount?: number;
 }
 
 let screenshotQueue: Queue | null = null;

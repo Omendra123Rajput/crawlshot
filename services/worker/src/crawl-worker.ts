@@ -40,6 +40,7 @@ export function startCrawlWorker(): Worker<CrawlJobData> {
       });
 
       // Queue screenshot jobs for each page + viewport
+      // Include pagesFound/viewportCount so stats can be rebuilt after worker restart
       for (const pageUrl of pages) {
         for (const viewport of viewports) {
           await addScreenshotJob({
@@ -47,6 +48,8 @@ export function startCrawlWorker(): Worker<CrawlJobData> {
             url: pageUrl,
             viewport: viewport as 'desktop' | 'mobile',
             outputDir,
+            pagesFound: pages.length,
+            viewportCount: viewports.length,
           });
         }
       }
