@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JobStatus, SSEEvent } from '@/lib/sse-client';
 
 interface JobProgressProps {
@@ -25,20 +25,28 @@ const statusConfig: Record<JobStatus, { label: string; color: string; pulse: boo
   failed: { label: 'Failed', color: 'bg-red-500', pulse: false },
 };
 
-/**
- * Eased progress: starts fast, slows down as it approaches completion.
- */
-function easeProgress(realPercent: number): number {
-  if (realPercent <= 0) return 0;
-  if (realPercent >= 100) return 100;
-  const t = realPercent / 100;
-  const eased = 1 - Math.pow(1 - t, 3);
-  return Math.round(eased * 100);
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 export default function JobProgress({ status, stats, events, url, error }: JobProgressProps) {
   const logRef = useRef<HTMLDivElement>(null);
   const config = statusConfig[status];
+
+  // Elapsed timer — ticks every second while job is active
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+  const isActive = status !== 'completed' && status !== 'failed';
+
+  useEffect(() => {
+    if (!isActive) return;
+    const tick = () => setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isActive]);
 
   // Use totalExpected (pagesFound × viewports) as denominator to avoid >100%
   const denominator = stats.totalExpected > 0 ? stats.totalExpected : stats.pagesFound;
@@ -46,8 +54,7 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
     denominator > 0
       ? Math.round((stats.pagesScreenshotted / denominator) * 100)
       : 0;
-  const realPercent = Math.min(rawPercent, 100);
-  const displayPercent = status === 'completed' ? 100 : easeProgress(realPercent);
+  const percent = status === 'completed' ? 100 : Math.min(rawPercent, 100);
 
   // Show indeterminate bar when we don't have meaningful progress data yet:
   // - queued/crawling: we're still discovering pages
@@ -75,15 +82,22 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
               {url}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-block w-2.5 h-2.5 rounded-full ${config.color} ${
-                config.pulse ? 'animate-pulse' : ''
-              }`}
-            />
-            <span className="text-sm font-medium text-[var(--text-primary)]">
-              {config.label}
-            </span>
+          <div className="flex items-center gap-3">
+            {isActive && (
+              <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                {formatElapsed(elapsed)}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-block w-2.5 h-2.5 rounded-full ${config.color} ${
+                  config.pulse ? 'animate-pulse' : ''
+                }`}
+              />
+              <span className="text-sm font-medium text-[var(--text-primary)]">
+                {config.label}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -108,7 +122,7 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
           <span className="text-[var(--text-primary)] font-medium">
             {isIndeterminate
               ? (status === 'capturing' ? 'Preparing captures...' : 'Discovering pages...')
-              : `${status === 'completed' ? 100 : realPercent}%`}
+              : `${percent}%`}
           </span>
         </div>
         <div className="h-3 rounded-full bg-white/5 overflow-hidden">
@@ -126,10 +140,10 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
           ) : (
             <div
               className="h-full rounded-full progress-bar-fill relative"
-              style={{ width: `${displayPercent}%` }}
+              style={{ width: `${percent}%` }}
             >
               {/* Shimmer overlay on active progress */}
-              {status !== 'completed' && status !== 'failed' && displayPercent > 0 && (
+              {status !== 'completed' && status !== 'failed' && percent > 0 && (
                 <div className="absolute inset-0 overflow-hidden rounded-full">
                   <div
                     className="absolute inset-0"
@@ -145,6 +159,11 @@ export default function JobProgress({ status, stats, events, url, error }: JobPr
         </div>
         {status === 'packaging' && (
           <p className="text-xs text-[var(--text-muted)]">Packaging screenshots into ZIP...</p>
+        )}
+        {status === 'capturing' && stats.totalExpected > 0 && (
+          <p className="text-xs text-[var(--text-muted)]">
+            Capturing screenshot {stats.pagesScreenshotted} of {stats.totalExpected}...
+          </p>
         )}
         {status === 'crawling' && stats.pagesFound > 0 && (
           <p className="text-xs text-[var(--text-muted)]">
