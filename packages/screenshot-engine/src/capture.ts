@@ -67,7 +67,7 @@ async function captureWithTimeout(
   outputPath: string
 ): Promise<void> {
   const pool = getBrowserPool();
-  const browser = pool.getBrowser();
+  const browser = await pool.getBrowser();
 
   const context = await browser.newContext({
     viewport,

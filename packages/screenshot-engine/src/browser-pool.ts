@@ -9,10 +9,11 @@ const BROWSER_LAUNCH_ARGS = [
 ];
 
 class BrowserPool {
-  private browsers: Browser[] = [];
+  private browsers: (Browser | null)[] = [];
   private currentIndex = 0;
   private maxBrowsers: number;
   private initPromise: Promise<void> | null = null;
+  private relaunching: Map<number, Promise<void>> = new Map();
 
   constructor(maxBrowsers: number = 1) {
     this.maxBrowsers = maxBrowsers;
@@ -33,35 +34,80 @@ class BrowserPool {
   private async doInitialize(): Promise<void> {
     logger.info({ maxBrowsers: this.maxBrowsers }, 'Initializing browser pool');
     for (let i = 0; i < this.maxBrowsers; i++) {
-      try {
-        const browser = await chromium.launch({
-          args: BROWSER_LAUNCH_ARGS,
-          headless: true,
-        });
-        this.browsers.push(browser);
-        logger.info({ index: i }, 'Browser instance launched');
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        logger.error({ index: i, error: error.message, stack: error.stack }, 'Failed to launch browser');
-        throw error;
-      }
+      await this.launchBrowser(i);
     }
     logger.info({ count: this.browsers.length }, 'Browser pool ready');
   }
 
-  getBrowser(): Browser {
+  private async launchBrowser(index: number): Promise<void> {
+    try {
+      const browser = await chromium.launch({
+        args: BROWSER_LAUNCH_ARGS,
+        headless: true,
+      });
+
+      // Auto-recover on crash: listen for disconnect and relaunch
+      browser.on('disconnected', () => {
+        logger.warn({ index }, 'Browser disconnected — scheduling relaunch');
+        this.browsers[index] = null;
+        this.relaunchBrowser(index);
+      });
+
+      this.browsers[index] = browser;
+      logger.info({ index }, 'Browser instance launched');
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error({ index, error: error.message, stack: error.stack }, 'Failed to launch browser');
+      throw error;
+    }
+  }
+
+  private relaunchBrowser(index: number): void {
+    if (this.relaunching.has(index)) return; // Already relaunching
+
+    const promise = this.launchBrowser(index)
+      .catch((err) => {
+        logger.error({ index, error: String(err) }, 'Browser relaunch failed');
+      })
+      .finally(() => {
+        this.relaunching.delete(index);
+      });
+
+    this.relaunching.set(index, promise);
+  }
+
+  async getBrowser(): Promise<Browser> {
     if (this.browsers.length === 0) {
       throw new Error('Browser pool not initialized');
     }
 
-    const browser = this.browsers[this.currentIndex];
-    this.currentIndex = (this.currentIndex + 1) % this.browsers.length;
-    return browser;
+    // Try each slot once to find a connected browser
+    for (let i = 0; i < this.browsers.length; i++) {
+      const idx = (this.currentIndex + i) % this.browsers.length;
+      const browser = this.browsers[idx];
+
+      if (browser && browser.isConnected()) {
+        this.currentIndex = (idx + 1) % this.browsers.length;
+        return browser;
+      }
+    }
+
+    // All browsers are dead — wait for any pending relaunch
+    const pending = Array.from(this.relaunching.values());
+    if (pending.length > 0) {
+      await Promise.race(pending);
+      // Retry after relaunch completes
+      return this.getBrowser();
+    }
+
+    throw new Error('All browsers crashed and relaunch failed');
   }
 
   async close(): Promise<void> {
     logger.info('Closing browser pool');
-    await Promise.all(this.browsers.map((b) => b.close()));
+    await Promise.all(
+      this.browsers.map((b) => b?.isConnected() ? b.close() : Promise.resolve())
+    );
     this.browsers = [];
     this.initPromise = null;
   }
